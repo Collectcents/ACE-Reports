@@ -1,0 +1,40 @@
+/*SELECT
+    'Total' AS "Agent",
+    COUNT(*) AS "PTPs",
+    SUM(payment.amount) AS "Currency:PTP $",
+    COUNT(CASE WHEN payment_plan.create_date BETWEEN ${DateTimeRange:Date} THEN 1 ELSE NULL END) AS "Kept #",
+    SUM(CASE WHEN payment_plan.create_date BETWEEN ${DateTimeRange:Date} THEN payment.amount ELSE 0 END) AS "Currency:Kept $",
+    ROUND(COUNT(CASE WHEN payment_plan.create_date BETWEEN ${DateTimeRange:Date} THEN 1 ELSE NULL END)::decimal / NULLIF(COUNT(*), 0) * 100, 1) AS "Kept Rate"
+FROM payment
+JOIN payment_plan ON payment_plan.debt_id = payment.debt_id
+JOIN debt ON debt.debt_id = payment.debt_id
+--JOIN debt_note ON debt_note.debt_id = debt.debt_id
+WHERE debt.customer_client_code IN ('JK1097', 'JK1113','SAMPLE1')
+  --AND debt_note.identifier = 'note.worklist.action'
+  --AND payment_plan.active = true
+  AND payment_plan.payment_dest_id = 774
+  AND payment_plan.create_date BETWEEN ${DateTimeRange:Date}
+
+UNION ALL*/
+
+SELECT
+    --'abc' AS "Agent",
+    (SELECT auth_user_passwd.username 
+     FROM auth_user_passwd 
+     WHERE auth_user_passwd.user_id = debt_note.user_id) AS "Agent",
+    COUNT(*) AS "PTPs",
+    SUM(payment.amount) AS "Currency:PTP $",
+    COUNT(CASE WHEN payment_plan.create_date BETWEEN ${DateTimeRange:Date} THEN 1 ELSE NULL END) AS "Kept #",
+    SUM(CASE WHEN payment_plan.create_date BETWEEN ${DateTimeRange:Date} THEN payment.amount ELSE 0 END) AS "Currency:Kept $",
+    ROUND(COUNT(CASE WHEN payment_plan.create_date BETWEEN ${DateTimeRange:Date} THEN 1 ELSE NULL END)::decimal / NULLIF(COUNT(*), 0) * 100, 1) AS "Kept Rate"
+FROM payment
+JOIN payment_plan ON payment_plan.debt_id = payment.debt_id
+JOIN debt ON debt.debt_id = payment.debt_id
+JOIN debt_note ON debt_note.debt_id = debt.debt_id
+WHERE debt.customer_client_code IN ('JK1097', 'JK1113','SAMPLE1')
+  --AND debt_note.identifier = 'note.worklist.action'
+  --AND payment_plan.active = true
+  --AND 
+  AND payment_plan.payment_dest_id = 774
+  AND payment_plan.create_date BETWEEN ${DateTimeRange:Date}
+GROUP BY "Agent"

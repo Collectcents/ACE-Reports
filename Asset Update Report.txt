@@ -1,0 +1,238 @@
+SELECT 
+   'Notes' AS "Identifier",
+    client_data.asset_id_2 AS "Asset ID",
+    auth_user_passwd.username AS "User Name",
+    debt_note.create_date AS "Note Date",
+    substring(array_to_string(debt_note.parameters, ',') FROM '(.*)') AS "Collection Notes",
+    NULL::DATE AS "Payment Date",
+    NULL::NUMERIC AS "Payment Amount",
+    NULL::NUMERIC AS "Payment Type ID",
+    NULL::TEXT AS "Collection Province",
+    NULL::TEXT AS "Borrower",
+    NULL::TEXT AS "Asset Customer ID",
+    NULL::TEXT AS "Language Indicator",
+    NULL::DATE AS "Date of Birth",
+    NULL::TEXT AS "Gender",
+    NULL::TEXT AS "Martial Status Code",
+    NULL::TEXT AS "Employer",
+    NULL::TEXT AS "Address 1",
+    NULL::TEXT AS "Address 2",
+    NULL::TEXT AS "City",
+    NULL::TEXT AS "Province",
+    NULL::TEXT AS "Postal Code",
+    NULL::TEXT AS "Country",
+    NULL::TEXT AS "Phone Number",
+    NULL::TEXT AS "Phone Ext",
+    NULL::TEXT AS "Fax Number",
+    NULL::TEXT AS "Cell Number",
+    NULL::TEXT AS "Pager",
+    NULL::TEXT AS "Email",
+     NULL:: TEXT AS "Status Code",
+    NULL:: NUMERIC AS "Promise to Pay Amount",
+    NULL:: DATE AS "Promise Pay Date",
+    NULL :: DATE AS "Last Contact Made"
+    
+FROM
+    client_data, debt_note, auth_user_passwd, debt
+WHERE
+    --debt.customer_client_code = 'JK0995' AND
+    client_data.debt_id = debt.debt_id AND
+    debt.debt_id = debt_note.debt_id AND
+    debt_note.user_id = auth_user_passwd.user_id AND
+    debt_note.note_type in ('DEBT','TEXT','PAYMENT','LETTER', 'EMAIL','PHONE') AND
+    debt.client_id  = '${ClientCode:ClientCode}' AND
+    date(debt_note.create_date) = ${DateTime:Date} 
+
+UNION ALL
+
+SELECT 
+    'Payment' AS "Identifier",
+    client_data.asset_id_2 AS "Asset ID",
+    NULL::TEXT AS "User Name",
+    NULL::DATE AS "Note Date",
+    NULL::TEXT AS "Collection Notes",
+    payment.trans_date AS "Payment Date",
+    payment.amount AS "Payment Amount",
+    CASE 
+        WHEN payment.payment_dest_label = 'Cheque' THEN 2
+        WHEN payment.payment_dest_label = 'Wire' THEN 10
+        WHEN payment.payment_dest_label = 'Money Order' THEN 9
+        WHEN payment.payment_dest_label = 'Money Gram' THEN 4
+        WHEN payment.payment_dest_label = 'Cash' THEN 1
+        WHEN payment.payment_dest_label = 'Direct' THEN 16
+        WHEN payment.payment_dest_label = 'PAD Text' THEN 11
+        WHEN payment.payment_dest_label = 'Online Banking' THEN 104
+        WHEN payment.payment_dest_label = 'E-Transfer' THEN 6
+        WHEN payment.payment_dest_label = 'FBPS' THEN 104
+        WHEN payment.payment_dest_label = 'Vira Payment Portal' THEN 19
+        WHEN payment.payment_dest_label = 'nuvei' THEN 19
+        ELSE NULL 
+    END AS "Payment Type ID",
+    payment_plan.state AS "Collection Province",
+    NULL::TEXT AS "Borrower",
+    NULL::TEXT AS "Asset Customer ID",
+    NULL::TEXT AS "Language Indicator",
+    NULL::DATE AS "Date of Birth",
+    NULL::TEXT AS "Gender",
+    NULL::TEXT AS "Martial Status Code",
+    NULL::TEXT AS "Employer",
+    NULL::TEXT AS "Address 1",
+    NULL::TEXT AS "Address 2",
+    NULL::TEXT AS "City",
+    NULL::TEXT AS "Province",
+    NULL::TEXT AS "Postal Code",
+    NULL::TEXT AS "Country",
+    NULL::TEXT AS "Phone Number",
+    NULL::TEXT AS "Phone Ext",
+    NULL::TEXT AS "Fax Number",
+    NULL::TEXT AS "Cell Number",
+    NULL::TEXT AS "Pager",
+    NULL::TEXT AS "Email",
+     NULL:: TEXT AS "Status Code",
+    NULL:: NUMERIC AS "Promise to Pay Amount",
+    NULL:: DATE AS "Promise Pay Date",
+    NULL :: DATE AS "Last Contact Made"
+   
+FROM
+    payment, client_data, payment_plan, debt
+WHERE
+    payment.debt_id = client_data.debt_id AND
+    client_data.debt_id = debt.debt_id AND
+    payment.payment_plan_id = payment_plan.payment_plan_id AND
+    payment.payment_dest_label in ('Cheque','Wire','Money Order','Money Gram',
+    'Cash','Direct','PAD Text','Online Banking','E-Transfer','FBPS','Visa Payment Portal','nuvei')  AND 
+    debt.client_id  = '${ClientCode:ClientCode}' AND
+    date(payment.last_update) = ${DateTime:Date}
+
+UNION ALL 
+
+SELECT 
+    'Customer' AS "Identifier",
+    NULL::Numeric AS "Asset ID",
+    NULL::TEXT AS "User Name",
+    NULL::DATE AS "Note Date",
+    NULL::TEXT AS "Collection Notes",
+    NULL::DATE AS "Payment Date",
+    NULL::NUMERIC AS "Payment Amount",
+    NULL::NUMERIC AS "Payment Type ID",
+    NULL::TEXT AS "Collection Province",
+    CASE WHEN demographic.demographic_type = 'PRIMARY' THEN 'PRIMARY' ELSE 'SECONDARY' END AS "Borrower",
+    client_data.client_ref_1 AS "Asset Customer ID",
+    demographic.preferred_language AS "Langugae Indicator",
+    demographic.dob AS "Date of Birth",
+    demographic.sex AS "Gender",
+    demographic.marital_status AS "Martial Status Code",
+    demographic.employer_name AS "Employer",
+    NULL::TEXT AS "Address 1",
+    NULL::TEXT AS "Address 2",
+    NULL::TEXT AS "City",
+    NULL::TEXT AS "Province",
+    NULL::TEXT AS "Postal Code",
+    NULL::TEXT AS "Country",
+    NULL::TEXT AS "Phone Number",
+    NULL::TEXT AS "Phone Ext",
+    NULL::TEXT AS "Fax Number",
+    NULL::TEXT AS "Cell Number",
+    NULL::TEXT AS "Pager",
+    NULL::TEXT AS "Email",
+     NULL:: TEXT AS "Status Code",
+    NULL:: NUMERIC AS "Promise to Pay Amount",
+    NULL:: DATE AS "Promise Pay Date",
+    NULL :: DATE AS "Last Contact Made"
+
+FROM 
+    demographic, debt, client_data
+WHERE 
+    debt.debt_id = demographic.debt_id AND
+    debt.debt_id = client_data.debt_id AND
+    debt.client_id  = '${ClientCode:ClientCode}' AND
+    date(demographic.last_update) = ${DateTime:Date}
+
+UNION ALL
+
+SELECT 
+    'Address' AS "Identifier",
+    NULL::NUMERIC AS "Asset ID",
+    NULL::TEXT AS "User Name",
+    NULL::DATE AS "Note Date",
+    NULL::TEXT AS "Collection Notes",
+    NULL::DATE AS "Payment Date",
+    NULL::NUMERIC AS "Payment Amount",
+    NULL::NUMERIC AS "Payment Type ID",
+    NULL::TEXT AS "Collection Province",
+    CASE WHEN demographic.demographic_type = 'PRIMARY' THEN 'PRIMARY' ELSE 'SECONDARY' END AS "Borrower",
+    client_data.client_ref_1 AS "Asset Customer ID",
+    NULL::TEXT AS "Language Indicator",
+    NULL::DATE AS "Date of Birth",
+    NULL::TEXT AS "Gender",
+    NULL::TEXT AS "Martial Status Code",
+    NULL::TEXT AS "Employer",
+    demographic.address1 AS "Address 1",
+    demographic.address2 AS "Address 2",
+    demographic.city AS "City",
+    demographic.state AS "Province",
+    demographic.zip AS "Postal Code",
+    demographic.country_code AS "Country",
+    demographic.phone_home AS "Phone Number",
+    demographic.phone_home_ext AS "Phone Ext",
+    demographic.phone_fax AS "Fax Number",
+    demographic.phone_cell AS "Cell Number",
+    demographic.phone_pager AS "Pager",
+    demographic.email AS "Email",
+    NULL:: TEXT AS "Status Code",
+    NULL:: NUMERIC AS "Promise to Pay Amount",
+    NULL:: DATE AS "Promise Pay Date",
+    NULL :: DATE AS "Last Contact Made"
+    
+FROM 
+    demographic, debt, client_data
+WHERE 
+    demographic.debt_id = debt.debt_id AND
+    debt.debt_id = client_data.debt_id AND
+    debt.client_id  = '${ClientCode:ClientCode}' AND
+    date(demographic.last_update) = ${DateTime:Date}
+    
+UNION ALL
+
+SELECT 
+    'Account' AS "Identifier",
+    client_data.asset_id_2 AS "Asset ID",
+    NULL::TEXT AS "User Name",
+    NULL::DATE AS "Note Date",
+    NULL::TEXT AS "Collection Notes",
+    NULL::DATE AS "Payment Date",
+    NULL::NUMERIC AS "Payment Amount",
+    NULL::NUMERIC AS "Payment Type ID",
+    NULL::TEXT AS "Collection Province",
+    NULL::TEXT AS "Borrower",
+    NULL::TEXT AS "Asset Customer ID",
+    NULL::TEXT AS "Language Indicator",
+    NULL::DATE AS "Date of Birth",
+    NULL::TEXT AS "Gender",
+    NULL::TEXT AS "Martial Status Code",
+    NULL::TEXT AS "Employer",
+    NULL::TEXT AS "Address 1",
+    NULL::TEXT AS "Address 2",
+    NULL::TEXT AS "City",
+    NULL::TEXT AS "Province",
+    NULL::TEXT AS "Postal Code",
+    NULL::TEXT AS "Country",
+    NULL::TEXT AS "Phone Number",
+    NULL::TEXT AS "Phone Ext",
+    NULL::TEXT AS "Fax Number",
+    NULL::TEXT AS "Cell Number",
+    NULL::TEXT AS "Pager",
+    NULL::TEXT AS "Email",
+    debt.debt_status_code AS "Status Code",
+    debt.promised_payment_amount AS "Promise to Pay Amount",
+    debt.promised_payment_date AS "Promise Pay Date",
+    debt.last_contact_date AS "Last Contact Made"
+    
+FROM 
+    debt, debt_status_code, client_data
+WHERE
+    debt.debt_status_code = debt_status_code.debt_status_code AND
+    debt.debt_id = client_data.debt_id AND
+    debt.client_id  = '${ClientCode:ClientCode}' AND
+    debt_status_code.debt_status_code_group IN ('ACTIVE','PROMISE','SKIP') AND
+    date(debt.last_update) = ${DateTime:Date}

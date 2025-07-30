@@ -1,0 +1,1 @@
+select debt.reference_number,debt.debt_id from debt where debt.reference_number is not null

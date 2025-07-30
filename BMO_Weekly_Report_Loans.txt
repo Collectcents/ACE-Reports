@@ -1,0 +1,145 @@
+SELECT
+    'Agent Actions',
+    count(*)
+from
+    debt_note
+    LEFT JOIN
+        client
+    ON
+        client.client_id = debt_note.client_id
+    LEFT JOIN
+        debt
+    ON
+        debt_note.debt_id = debt.debt_id
+WHERE 1 = 1
+    AND debt_note.parameters[1] in ('706','300','306','500','506','200','206','400','406','100','106','704','308','304','508','504','604','208','204','408','404','108','104','825','301','501','501','201','401','101','CSIF','DRD','817','FD1','707','307','507','607','207','807','407','107','702','302','502','602','202','402','102','305','505','205','405','105','309','509','209','409','109','703','303','503','603','203','403','803','103','8695','821','RTP','810')
+    AND client.customer_client_code = 'JK1097'
+    AND date_trunc('day',debt_note.create_date) BETWEEN ${DateRange:CallDates}
+    AND debt.misc002 in ('CAD DEPOSIT ACC','CAD LOANS')
+UNION ALL
+SELECT
+    'Dialer Attempts',
+    count(*)
+FROM debt_phone_log, debt
+    WHERE debt_phone_log.debt_id = debt.debt_id
+    AND date_trunc('day',debt_phone_log.call_date) BETWEEN ${DateRange:CallDates}
+    AND debt.customer_client_code = 'JK1097'
+    AND debt_phone_log.source_type LIKE '%DIALER%'
+    AND debt.misc002 in ('CAD DEPOSIT ACC','CAD LOANS')
+UNION ALL
+SELECT
+    'Contacts',
+    count(*)
+from
+    debt_note
+    LEFT JOIN
+        client
+    ON
+        client.client_id = debt_note.client_id
+    LEFT JOIN
+        debt
+    ON
+        debt_note.debt_id = debt.debt_id
+WHERE 1 = 1
+    AND debt_note.parameters[1] in ('706','704','308','304','508','504','604','208','204','408','404','108','104','DRD','707','307','507','607','207','807','407','107','702','302','502','602','202','402','102','309','509','209','409','109','703','303','503','603','203','403','803','103','RTP')
+    AND client.customer_client_code = 'JK1097'
+    AND date_trunc('day',debt_note.create_date) BETWEEN ${DateRange:CallDates}
+    AND debt.misc002 in ('CAD DEPOSIT ACC','CAD LOANS')
+UNION ALL
+SELECT
+    'Total PTPs',
+    COUNT(DISTINCT(debt.debt_id))
+from debt
+    LEFT JOIN 
+        debt_status_code
+    ON debt_status_code.debt_status_code = debt.debt_status_code
+WHERE 1 = 1
+    AND debt_status_code.debt_status_code_group = 'PROMISE'
+    AND debt.customer_client_code = 'JK1097'
+    AND debt.misc002 in ('CAD DEPOSIT ACC','CAD LOANS')
+UNION ALL
+SELECT
+    'PTP Dollars',
+    SUM(debt.promised_payment_amount)
+from debt
+    LEFT JOIN 
+        debt_status_code
+    ON debt_status_code.debt_status_code = debt.debt_status_code
+WHERE 1 = 1
+    AND debt_status_code.debt_status_code_group = 'PROMISE'
+    AND debt.customer_client_code = 'JK1097'
+    AND debt.misc002 in ('CAD DEPOSIT ACC','CAD LOANS')
+UNION ALL
+SELECT
+    'Active Inventory',
+    count(*)
+FROM debt
+WHERE 
+    debt.customer_client_code = 'JK1097'
+    AND debt.cancelled is False
+    AND debt.closed_date IS NULL
+    AND debt.misc002 in ('CAD DEPOSIT ACC','CAD LOANS')
+UNION ALL
+SELECT
+    'Active Dollars',
+    sum(debt.current_balance)/100 as "Currency"
+FROM debt
+WHERE 
+    debt.customer_client_code = 'JK1097'
+    AND debt.cancelled is False
+    AND debt.closed_date IS NULL
+    AND debt.misc002 in ('CAD DEPOSIT ACC','CAD LOANS')
+UNION ALL
+SELECT
+    'Total Delinquent',
+    sum(CAST(coalesce(bmo_early.bmo_total_delinquent, '0') AS float)) AS "Currency"
+FROM debt
+    LEFT JOIN
+        bmo_early
+    ON
+        bmo_early.debt_id = debt.debt_id
+WHERE 
+    debt.customer_client_code = 'JK1097'
+    AND debt.cancelled is False
+    AND debt.closed_date IS NULL
+    AND debt.misc002 in ('CAD DEPOSIT ACC','CAD LOANS')
+UNION ALL
+SELECT
+    'Total Collected',
+    sum(debt_trans.amount)/100 as "Currency"
+FROM
+    debt_trans, debt
+WHERE debt_trans.debt_id = debt.debt_id
+    and debt_trans.type_name = 'PAYMENT'
+    AND debt.customer_client_code = 'JK1097'
+    AND date_trunc('day',debt_trans.trans_date) BETWEEN ${DateRange:CallDates}
+    AND debt.misc002 in ('CAD DEPOSIT ACC','CAD LOANS')
+UNION ALL
+SELECT
+    'New Assigns',
+    count(*)
+FROM debt
+WHERE 
+    debt.customer_client_code = 'JK1097'
+    AND date_trunc('day',debt.assigned_date) BETWEEN ${DateRange:CallDates}
+    AND debt.misc002 in ('CAD DEPOSIT ACC','CAD LOANS')
+
+
+/*SELECT
+    SUM(CASE WHEN debt_phone_log.source_type NOT LIKE '%DIALER%' THEN 1 ELSE 0 END) as "Call Attempts",
+    SUM(CASE WHEN debt_phone_log.source_type LIKE '%DIALER%' THEN 1 ELSE 0 END) as "Dialer Attempts",
+    SUM(CASE WHEN debt_phone_log.contacted is True and debt_phone_log.source_type NOT LIKE '%DIALER%' THEN 1 ELSE 0 END) as "Contacted",
+    SUM(payment_plan_schedule.amount) as "Currency:PTP Dollars",
+    SUM(CASE WHEN debt.closed_date IS NULL THEN 1 ELSE 0 END) as "Active Inventory",    
+    SUM(CASE WHEN debt.closed_date IS NULL THEN debt.current_balance ELSE 0 END) as "Currency:Active Dollars",
+    SUM(debt_trans.amount) as "Currency:Collected Dollars",
+    SUM(CASE WHEN debt.assigned_date BETWEEN ${DateRange:CallDates} THEN 1 ELSE 0 END) as "New Asignments"
+FROM
+    debt
+LEFT JOIN debt_trans ON debt.debt_id = debt_trans.debt_id and debt_trans.trans_date BETWEEN ${DateRange:CallDates}
+LEFT JOIN debt_phone_log ON debt.debt_id = debt_phone_log.debt_id and debt_phone_log.call_date BETWEEN ${DateRange:CallDates}
+LEFT JOIN payment_plan_debt ON debt.debt_id = payment_plan_debt.debt_id
+LEFT JOIN payment_plan_schedule ON payment_plan_debt.payment_plan_id = payment_plan_schedule.payment_plan_id and payment_plan_schedule.payment_date BETWEEN ${DateRange:CallDates}
+WHERE 1 = 1
+    AND debt.customer_client_code = 'JK1097'
+    AND debt.closed_date is NULL or debt.closed_date >= date_trunc('month', CURRENT_DATE)*/

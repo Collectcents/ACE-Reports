@@ -1,0 +1,141 @@
+WITH daily_ptps AS (
+    SELECT
+        pp.debt_id,
+        COUNT(ps.payment_schedule_id) AS daily_ptp_count,
+        SUM(ps.amount) AS daily_ptp_amount,
+        pp.create_date
+    FROM payment_plan_schedule ps
+    JOIN payment_plan pp ON ps.payment_plan_id = pp.payment_plan_id
+    WHERE pp.payment_dest_id = '774'
+      AND pp.create_date BETWEEN (${DateTime:Date}::date - INTERVAL '6 days') AND ${DateTime:Date}::date
+    GROUP BY pp.debt_id, pp.create_date
+),
+
+latest_phone_log AS (
+    SELECT DISTINCT ON (debt_id)
+        debt_id,
+        create_date,
+        dialer_vendor_id,
+        phone_result_contact_type
+    FROM debt_phone_log
+    ORDER BY debt_id, create_date DESC
+),
+
+dp_rpc AS (
+    SELECT 
+        debt_id, 
+        COUNT(demographic_phone_id) FILTER (WHERE last_rpc_date < ${DateTime:Date}) AS rpc_count
+    FROM demographic_phone
+    GROUP BY debt_id
+),
+
+dp_txt AS (
+    SELECT 
+        debt_id, 
+        MAX(txt_msg_sent) AS txt_msg_sent
+    FROM demographic_phone
+    GROUP BY debt_id
+)
+
+SELECT  
+    TO_CHAR(d.assigned_date, 'YYYY-MM-DD') AS "Date",
+
+    COUNT(CASE 
+        WHEN ((SELECT cancel_date FROM debt_cancel dc WHERE dc.debt_id = d.debt_id) IS NULL
+              AND (d.closed_date IS NULL OR d.closed_date BETWEEN (${DateTime:Date}::date - INTERVAL '6 days') AND ${DateTime:Date}::date))
+        THEN 1 ELSE NULL END) AS "# Active",
+
+    ROUND(COALESCE(SUM(CASE 
+        WHEN ((SELECT cancel_date FROM debt_cancel dc WHERE dc.debt_id = d.debt_id) IS NULL
+              AND (d.closed_date IS NULL OR d.closed_date BETWEEN (${DateTime:Date}::date - INTERVAL '6 days') AND ${DateTime:Date}::date))
+        THEN d.assigned_balance ELSE NULL END), 0) / 100, 2) AS "Currency:$ Active",
+
+    COUNT(CASE 
+        WHEN ((SELECT location_type FROM demographic_phone dp WHERE dp.debt_id = d.debt_id LIMIT 1) NOT IN ('WORK', 'FAX') AND
+              (SELECT status FROM demographic_phone dp WHERE dp.debt_id = d.debt_id LIMIT 1) IN ('NEW', 'ACTIVE', 'VERIFIED') AND
+              (SELECT country_code FROM demographic_phone dp WHERE dp.debt_id = d.debt_id LIMIT 1) = 'CA')
+        THEN 1 ELSE NULL END) AS "# Callable",
+
+    ROUND(COALESCE(SUM(CASE 
+        WHEN ((SELECT location_type FROM demographic_phone dp WHERE dp.debt_id = d.debt_id LIMIT 1) NOT IN ('WORK', 'FAX') AND
+              (SELECT status FROM demographic_phone dp WHERE dp.debt_id = d.debt_id LIMIT 1) IN ('NEW', 'ACTIVE', 'VERIFIED') AND
+              (SELECT country_code FROM demographic_phone dp WHERE dp.debt_id = d.debt_id LIMIT 1) = 'CA')
+        THEN d.assigned_balance ELSE NULL END), 0) / 100, 2) AS "Currency:$ Callable",
+
+    COUNT(CASE WHEN d.debt_status_code = 'BRP' THEN 1 ELSE NULL END) AS "# BRP",
+
+    ROUND(COALESCE(SUM(CASE WHEN d.debt_status_code = 'BRP' THEN d.promised_payment_amount ELSE NULL END), 0) / 100, 2) AS "Currency:$ BRP",
+
+    COUNT(CASE WHEN d.debt_status_code = 'PIF' THEN 1 ELSE NULL END) AS "# PIF",
+
+    ROUND(COALESCE(SUM(CASE WHEN d.debt_status_code = 'PIF' THEN (SELECT SUM(amount) FROM debt_trans WHERE debt_trans.debt_id = d.debt_id) ELSE NULL END), 0) / 100, 2) AS "Currency:$ PIF",
+
+    COUNT(CASE WHEN d.debt_status_code = 'SIF' THEN 1 ELSE NULL END) AS "# SIF",
+
+    ROUND(COALESCE(SUM(CASE WHEN d.debt_status_code = 'SIF' THEN (SELECT SUM(amount) FROM debt_trans WHERE debt_trans.debt_id = d.debt_id) ELSE NULL END), 0) / 100, 2) AS "Currency:$ SIF",
+
+    COUNT(CASE WHEN lpl.dialer_vendor_id = d.client_id THEN 1 ELSE NULL END) AS "Total Dialed",
+
+    COUNT(DISTINCT CASE WHEN lpl.dialer_vendor_id = d.client_id THEN d.debt_id ELSE NULL END) AS "Unique Dialed",
+
+    COUNT(CASE 
+        WHEN TO_CHAR(lpl.create_date, 'MM YYYY') = TO_CHAR(${DateTime:Date}, 'MM YYYY') THEN 1 ELSE NULL END
+    ) AS "MTD Unique Dialed",
+
+    COUNT(CASE 
+        WHEN (d.calls > 0 OR (d.last_work_date BETWEEN (${DateTime:Date}::date - INTERVAL '6 days') AND ${DateTime:Date}::date))
+        THEN 1 ELSE NULL END) AS "Agent Worked",
+
+    COUNT(DISTINCT CASE 
+        WHEN (d.calls > 0 OR (d.last_work_date BETWEEN (${DateTime:Date}::date - INTERVAL '6 days') AND ${DateTime:Date}::date))
+        THEN d.debt_id ELSE NULL END) AS "Unique Agent Worked",
+
+    COUNT(CASE 
+        WHEN ((SELECT debt_status_code_group FROM debt_status_code WHERE debt_status_code = d.debt_status_code) = 'SKIP')
+        THEN 1 ELSE NULL END) AS "Trace Success",
+
+    COUNT(CASE 
+        WHEN ((SELECT debt_status_code_group FROM debt_status_code WHERE debt_status_code = d.debt_status_code) = 'LEGAL'
+              AND d.closed_date IS NULL)
+        THEN 1 ELSE NULL END) AS "# Legal",
+
+    ROUND(COALESCE(SUM(CASE 
+        WHEN ((SELECT debt_status_code_group FROM debt_status_code WHERE debt_status_code = d.debt_status_code) = 'LEGAL'
+              AND d.closed_date IS NULL)
+        THEN d.assigned_balance ELSE NULL END), 0) / 100, 2) AS "Currency:$ Legal",
+
+    COALESCE(SUM(dp_rpc.rpc_count), 0) AS "RPC",
+    COALESCE(SUM(dp.daily_ptp_count), 0) AS "# Daily PTP",
+    ROUND(COALESCE(SUM(dp.daily_ptp_amount), 0) / 100, 2) AS "Currency:$ Daily PTP",
+
+    COUNT(CASE WHEN d.last_pay_date = d.assigned_date THEN 1 ELSE NULL END) AS "# Paid Today",
+
+    ROUND(COALESCE(SUM(CASE WHEN d.last_pay_date = d.assigned_date THEN (SELECT SUM(amount) FROM debt_trans WHERE debt_trans.debt_id = d.debt_id) ELSE NULL END), 0) / 100, 2) AS "Currency:$ Paid Today",
+
+    COUNT(CASE WHEN d.letters_sent != 0 THEN 1 ELSE NULL END) AS "# Letters",
+
+    COUNT(CASE WHEN dp_txt.txt_msg_sent != 0 THEN 1 ELSE NULL END) AS "# SMS",
+
+    COUNT(CASE WHEN d.emails != 0 THEN 1 ELSE NULL END) AS "# Email",
+
+    COUNT(CASE WHEN lpl.phone_result_contact_type = 'ABANDONED' THEN 1 ELSE NULL END) AS "Abandoned",
+    COUNT(CASE WHEN lpl.phone_result_contact_type = 'BUSY' THEN 1 ELSE NULL END) AS "Busy",
+    COUNT(CASE WHEN lpl.phone_result_contact_type = 'NIS' THEN 1 ELSE NULL END) AS "NIS",
+
+    COUNT(CASE 
+        WHEN (SELECT MAX(calls_rpc) FROM demographic_phone dp2 WHERE dp2.debt_id = d.debt_id) > 0 THEN 1 ELSE NULL END
+    ) AS "Spoke with RPC"
+
+FROM debt d
+LEFT JOIN daily_ptps dp ON dp.debt_id = d.debt_id
+LEFT JOIN dp_rpc ON dp_rpc.debt_id = d.debt_id
+LEFT JOIN dp_txt ON dp_txt.debt_id = d.debt_id
+LEFT JOIN latest_phone_log lpl ON lpl.debt_id = d.debt_id
+
+WHERE d.customer_client_code IN ('JK0284','JK0285','JK0980','JK0981')
+  AND debt.misc002 = '${String:Product Assignment Level}'::TEXT AND debt.misc003 = '${String:Product Description}'::TEXT
+  AND d.assigned_date < ${DateTime:Date}
+  AND TO_CHAR(d.assigned_date, 'YYYY') > '2018'
+
+GROUP BY TO_CHAR(d.assigned_date, 'YYYY-MM-DD')
+ORDER BY TO_CHAR(d.assigned_date, 'YYYY-MM-DD');

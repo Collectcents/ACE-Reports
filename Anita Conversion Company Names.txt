@@ -1,0 +1,11 @@
+Select
+account.debt_id,
+account.company_name,
+debt_conv_anita.actnam
+
+From debt_conv_anita,account
+
+Where account.debt_id=debt_conv_anita.debt_id
+AND debt_conv_anita.actnam Is Not Null
+AND debt_conv_anita.actnam Not Like ','
+AND account.company_name Is Null

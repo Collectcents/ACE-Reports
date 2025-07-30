@@ -1,0 +1,15 @@
+SELECT
+    client_categories.client_id,
+    client.company_name,
+    client_categories.client_group,
+    client_categories.toll_free_eng,
+    client_categories.local_phone_eng,
+    client_categories.toll_free_french,
+    client_categories.local_phone_french,
+    client_categories.initial_letter_action
+from
+    client_categories
+    LEFT JOIN
+        client
+    ON
+        client.client_id = client_categories.client_id

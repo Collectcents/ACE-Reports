@@ -1,0 +1,31 @@
+Select
+account.customer_client_code as "CLIENTCODE",
+account.debt_id as "DEBTORCODE",
+account.assigned_date as "LISTDATE",
+account.company_name as "COMPANYNAME",
+CONCAT(account.first_name,' ',account.last_name) as "NAME",
+account.address1 as "ADDRESS",
+CONCAT(account.city,', ',account.state) as "CITY",
+account.zip as "POST",
+account.phone_home as "PHONE1",
+account.phone_cell as "PHONE2",
+account.phone_work as "PHONE3",
+account.current_balance as "BALANCE",
+account.client_account_number as "REFNO",
+account.primary_collector_id as "COLLECTOR",
+account.mail_return as "MAILRET",
+account.last_letter_sent_config_id as "LAST LETTER",
+account.last_letter_sent_date as "DATE SENT",
+account.validation_notice_end_date as "HOLD DATE",
+account.debt_status_code as "STATUS",
+account.last_status_change_date as "STATDATE",
+'' as "PROGRAM",
+anita_invoice_history.invoice_num as "INV NUMBER",
+anita_invoice_history.invoice_date as "INV DATE",
+anita_invoice_history.amount as "INV AMNT",
+anita_invoice_history.status as "INV STATUS"
+
+From account, anita_invoice_history
+
+Where account.debt_id=anita_invoice_history.debt_id
+AND account.client_id In (${ClientCodes:Client})

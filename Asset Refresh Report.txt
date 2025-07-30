@@ -1,0 +1,18 @@
+Select
+debt.debt_id,
+debt.client_account_number,
+debt.customer_client_code,
+debt.reference_number,
+debt.assigned_date,
+debt.debt_status_code,
+asset_refresh.last_refresh_date
+
+From debt
+
+Left JOIN asset_refresh On debt.debt_id=asset_refresh.debt_id
+INNER JOIN debt_status_code On debt.debt_status_code=debt_status_code.debt_status_code
+
+Where debt.customer_client_code In ('RBC1','RBC2','RBC3','JK0611','JK0852','JK0948','JK0995','JK0751','JK1037','JK0284','JK0980','JD4459')
+AND debt_status_code.debt_status_code_group Not In ('PAID','CANCELLED','SETTLED','CLOSED','SUSPENDED')
+AND (asset_refresh.last_refresh_date Is NULL
+OR asset_refresh.debt_id Is Null)

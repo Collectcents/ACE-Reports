@@ -1,0 +1,39 @@
+SELECT
+    debt.debt_id AS "Account",
+    debt.customer_client_code AS "Client ID",
+    debt_trans.commission_amount AS "Currency:Commission",
+    UPPER(worklist.label) AS "Worklist",
+    debt_trans.primary_collector_id AS "Primary Agent",
+    TO_CHAR(debt_trans.create_date, 'yyyy-MM-dd') AS "Post Date",
+    debt_trans.amount AS "Transaction Amount",
+    TO_CHAR(debt_trans.trans_date, 'yyyy-MM-dd') AS "Trans Date",
+    client_categories.salesperson AS "Salesman ID",
+    debt.client_name AS "Name",
+    TO_CHAR(client.create_date, 'yyyy-MM-dd') AS "Client Setup Date",
+    debt_trans.commission_amount AS "Currency:Commission",
+    debt_trans.amount AS "Transaction Amount",
+    debt_group.customer_identifier AS "COM/RET",
+    debt_trans.receiver,
+    client_categories.client_group,
+    demographic.zip,
+    demographic.state
+FROM
+    debt
+LEFT JOIN demographic ON demographic.debt_id = debt.debt_id AND demographic.demographic_type='PRIMARY'
+JOIN
+    client ON client.client_id = debt.client_id
+LEFT JOIN
+    worklist ON debt.worklist_id = worklist.worklist_id 
+JOIN 
+    debt_trans ON debt.debt_id = debt_trans.debt_id 
+LEFT JOIN 
+    debt_group_mapping ON debt_group_mapping.debt_id = debt.debt_id
+LEFT JOIN 
+    debt_group ON debt_group.debt_group_id = debt_group_mapping.debt_group_id
+LEFT JOIN 
+    client_categories ON debt.client_id = client_categories.client_id
+WHERE 
+    debt_trans.create_date BETWEEN ${DateTimeRange:Create Date}
+    AND debt_trans.commission_amount != 0
+ORDER BY 
+    debt_trans.trans_date;

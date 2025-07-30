@@ -1,0 +1,29 @@
+Select
+account.first_name as "First name",
+account.last_name as "Last name",
+account.dob as "DOB",
+account.address1 as "Address 1",
+account.address2 as "Address 2",
+account.city as "City",
+account.state as "Province",
+account.zip as "Postal code",
+account.phone_home as "phone number",
+account.email as "email address",
+account.client_account_number as "Policy Number",
+account.misc001 as "Policy Type",
+account.misc002 as "Policy Term",
+'' as "Inception date",
+account.client_delinquency_date as "Cancellation date",
+account.current_balance as "Outstanding Balance",
+'' as "Last charge date",
+account.assigned_date as "Assignment date",
+debt_trans.amount as "Amount Collected",
+debt_trans.trans_date as "Collection date",
+debt_trans.commission_amount as "Amount owing to SP"
+
+From account, debt_trans
+
+Where account.debt_id=debt_trans.debt_id
+AND debt_trans.type_name='PAYMENT'
+AND debt_trans.trans_date >= CURRENT_DATE - (interval '7 days')
+AND account.customer_client_code IN ('CM0171','CM0170')

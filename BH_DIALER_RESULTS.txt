@@ -1,0 +1,62 @@
+SELECT
+    debt.client_account_number as "Account Number",
+    CAST(debt_phone_log.call_date as DATE) as "Call Date",
+    CAST(date_trunc('second',debt_phone_log.call_date) as TIME) as "Call Time",
+    debt_phone_log.phone_number as "Number Called",
+    CASE
+        WHEN debt_phone_log.dialer_code = '1000' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '2000' THEN 'Message Left Live'
+        WHEN debt_phone_log.dialer_code = '2100' THEN 'Message Left Live'
+        WHEN debt_phone_log.dialer_code = '2110' THEN 'Message Left Live'
+        WHEN debt_phone_log.dialer_code = '2130' THEN 'Message Left Live'
+        WHEN debt_phone_log.dialer_code = '2140' THEN 'Message Left Live'
+        WHEN debt_phone_log.dialer_code = '2150' THEN 'Message Left Live'
+        WHEN debt_phone_log.dialer_code = '2160' THEN 'Message Left Live'
+        WHEN debt_phone_log.dialer_code = '2200' THEN 'Message Left Live'
+        WHEN debt_phone_log.dialer_code = '2300' THEN 'Message Left Machine'
+        WHEN debt_phone_log.dialer_code = '3000' THEN 'Message Left Machine'
+        WHEN debt_phone_log.dialer_code = '3100' THEN 'Message Left Machine'
+        WHEN debt_phone_log.dialer_code = '3200' THEN 'Message Left Machine'
+        WHEN debt_phone_log.dialer_code = '3300' THEN 'Message Left Machine'
+        WHEN debt_phone_log.dialer_code = '4000' THEN 'Fax'
+        WHEN debt_phone_log.dialer_code = '4100' THEN 'Fax'
+        WHEN debt_phone_log.dialer_code = '5000' THEN 'Busy'
+        WHEN debt_phone_log.dialer_code = '6000' THEN 'No Answer'
+        WHEN debt_phone_log.dialer_code = '7000' THEN 'Disconnected'
+        WHEN debt_phone_log.dialer_code = '7100' THEN 'Bad Number'
+        WHEN debt_phone_log.dialer_code = '7200' THEN 'Bad Number'
+        WHEN debt_phone_log.dialer_code = '7210' THEN 'Bad Number'
+        WHEN debt_phone_log.dialer_code = '7220' THEN 'Bad Number'
+        WHEN debt_phone_log.dialer_code = '7230' THEN 'Bad Number'
+        WHEN debt_phone_log.dialer_code = '7300' THEN 'Disconnected'
+        WHEN debt_phone_log.dialer_code = '7400' THEN 'Disconnected'
+        WHEN debt_phone_log.dialer_code = '7410' THEN 'Disconnected'
+        WHEN debt_phone_log.dialer_code = '8000' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '8100' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '8200' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '8300' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '8310' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '8320' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '8330' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '8340' THEN 'Retries Exhausted'
+        WHEN debt_phone_log.dialer_code = '8350' THEN 'Call Blocked'
+        WHEN debt_phone_log.dialer_code = '9000' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '9100' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '9200' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '9300' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '9310' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '9320' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '9400' THEN 'Not Sent'
+        WHEN debt_phone_log.dialer_code = '9500' THEN 'Bad Number'
+        ELSE 'Bad Number'
+    END AS "Result"
+FROM 
+    debt_phone_log
+LEFT JOIN debt ON debt_phone_log.debt_id = debt.debt_id
+WHERE
+    debt.customer_client_code = 'SM0001_P'
+    and date_trunc('day',debt_phone_log.call_date) BETWEEN ${DateRange:DialerDate}
+    AND debt_phone_log.source_type like '%DIALER%'
+    AND debt_phone_log.dialer_code NOT IN ('1000','8000','8100','8200','8300','8310','8320','8330','9000','9100','9200','9300','9310','9320','9400')
+ORDER BY
+    debt.client_account_number

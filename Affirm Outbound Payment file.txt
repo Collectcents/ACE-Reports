@@ -1,0 +1,33 @@
+SELECT 
+    debt.client_account_number AS "String:data_id",
+    CASE 
+        WHEN debt.debt_status_code = 'PIF' THEN 1001
+        WHEN debt.debt_status_code = 'SIF' THEN 1002
+        WHEN debt.debt_status_code = 'NSF' THEN 1003
+        ELSE 1000
+    END AS "String:tran_type",
+    TO_CHAR(debt_trans.trans_date, 'FMmm/FMdd/yyyy') AS "String:tran_date",
+    debt_trans.amount AS "Currency:tran_amount",
+    CASE WHEN debt_trans.bucket = 'PRINCIPAL' THEN debt_trans.amount END AS "Currency:tran_principal",
+    NULLIF(CASE WHEN debt_trans.bucket = 'INTEREST' THEN debt_trans.amount END, 0) AS "Currency:tran_interest",
+    '' AS "String:tran_court",
+    '' AS "String:tran_attorney",
+    '' AS "String:tran_other",
+    '' AS "String:tran_retained",
+    '' AS "String:tran_subtype",
+    debt_trans.debt_trans_id AS "String:pay_source_number",
+    '' AS "String:intrate",
+    TO_CHAR(debt_trans.create_date, 'HH24:MI:SS') AS "String:pay_source_other"
+
+FROM 
+    debt
+JOIN 
+    debt_trans ON debt.debt_id = debt_trans.debt_id
+WHERE 
+    debt_trans.type_name = 'PAYMENT'
+    AND debt_trans.receiver = 'OWNER'
+    AND debt_trans.bucket != 'OVERPAYMENT'
+    AND debt.customer_client_code IN ('CM0130','CM0131','CM0132')
+    AND debt_trans.trans_date Between ${DateRange:Date}--CURRENT_DATE - INTERVAL '1 day'
+ORDER BY 
+    debt_trans.trans_date DESC;

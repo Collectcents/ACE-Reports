@@ -1,0 +1,119 @@
+Select
+1::text as "Order",
+'High Probability' AS Probability,
+Count(debt.debt_id)::text AS Num,
+(Sum(debt.principal_assigned)::money)::text AS Listed,
+(Sum(debt.current_balance)::money)::text AS BalanceOwing,
+'' AS Owing
+
+From debt,debt_status_code
+
+Where debt.debt_status_code=debt_status_code.debt_status_code
+AND debt.misc008='High'
+AND debt_status_code.debt_status_code_group In ('ACTIVE')
+AND debt.client_id = ${ClientCode:ClientCode}
+AND debt.assigned_date BETWEEN ${DateTimeRange:Date}
+
+Union
+
+Select
+2::text as "Order",
+'Average Probability' AS Probability,
+Count(debt.debt_id)::text AS Num,
+(Sum(debt.principal_assigned)::money)::text AS Listed,
+(Sum(debt.current_balance)::money)::text AS BalanceOwing,
+'' AS Owing
+
+From debt,debt_status_code
+
+Where debt.debt_status_code=debt_status_code.debt_status_code
+AND debt.misc008='Average'
+AND debt_status_code.debt_status_code_group In ('ACTIVE')
+AND debt.client_id = ${ClientCode:ClientCode}
+AND debt.assigned_date BETWEEN ${DateTimeRange:Date}
+
+Union
+
+Select
+3::text as "Order",
+'Low Probability' AS Probability,
+Count(debt.debt_id)::text AS Num,
+(Sum(debt.principal_assigned)::money)::text AS Listed,
+(Sum(debt.current_balance)::money)::text AS BalanceOwing,
+'' AS Owing
+
+From debt,debt_status_code
+
+Where debt.debt_status_code=debt_status_code.debt_status_code
+AND debt.misc008='Low'
+AND debt_status_code.debt_status_code_group In ('ACTIVE')
+AND debt.client_id = ${ClientCode:ClientCode}
+AND debt.assigned_date BETWEEN ${DateTimeRange:Date}
+
+Union
+
+Select
+4::text as "Order",
+'Improbable' AS Probability,
+Count(debt.debt_id)::text AS Num,
+(Sum(debt.principal_assigned)::money)::text AS Listed,
+(Sum(debt.current_balance)::money)::text AS BalanceOwing,
+'' AS Owing
+
+From debt,debt_status_code
+
+Where debt.debt_status_code=debt_status_code.debt_status_code
+AND debt.misc008='Improbable'
+AND debt_status_code.debt_status_code_group In ('ACTIVE')
+AND debt.client_id = ${ClientCode:ClientCode}
+AND debt.assigned_date BETWEEN ${DateTimeRange:Date}
+
+Union
+
+Select
+5::text as "Order",
+'Unknown' AS Probability,
+Count(debt.debt_id)::text AS Num,
+(Sum(debt.principal_assigned)::money)::text AS Listed,
+(Sum(debt.current_balance)::money)::text AS BalanceOwing,
+'' AS Owing
+
+From debt,debt_status_code
+
+Where debt.debt_status_code=debt_status_code.debt_status_code
+AND debt.misc008 Is Null
+AND debt_status_code.debt_status_code_group In ('ACTIVE')
+AND debt.client_id = ${ClientCode:ClientCode}
+AND debt.assigned_date BETWEEN ${DateTimeRange:Date}
+
+Union
+
+Select
+6::text as "Order",
+'' AS Probability,
+'' AS Num,
+'' AS Listed,
+'' AS BalanceOwing,
+'' AS Owing
+
+Union
+
+Select
+'' as "Order",
+debt_status_code.label AS Probability,
+Count(debt.debt_id)::text AS Num,
+(Sum(debt.principal_assigned)::money)::text AS Listed,
+(Sum(debt.current_balance)::money)::text AS BalanceOwing,
+'' AS Owing
+
+From debt,debt_status_code
+
+Where debt.debt_status_code=debt_status_code.debt_status_code
+AND debt.misc008 Is Null
+AND debt_status_code.debt_status_code_group In ('ACTIVE')
+AND debt.client_id = ${ClientCode:ClientCode}
+AND debt.assigned_date BETWEEN ${DateTimeRange:Date}
+
+Group By debt_status_code.label
+
+Order By "Order"

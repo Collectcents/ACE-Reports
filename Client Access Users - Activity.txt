@@ -1,0 +1,23 @@
+SELECT 
+    client.company_name, 
+    client.customer_client_code,
+    debt.customer_account_number,
+    debt.client_account_number,
+    auth_user_passwd.username, 
+    debt_note.create_date,
+    debt_note.note_type,
+    parse_note(debt_note.identifier, debt_note.parameters, 'en', 'US') AS note
+FROM 
+    auth_user_passwd,
+    debt,
+    debt_note,
+    client
+WHERE
+    auth_user_passwd.user_id = debt_note.user_id AND
+    debt_note.debt_id = debt.debt_id AND
+    debt_note.client_id = client.client_id AND
+    auth_user_passwd.user_type = 'CLIENT_ACCESS' AND
+    debt_note.create_date BETWEEN ${DateTimeRange:Date Range} AND
+    debt_note.note_type NOT IN ('VIEW')
+ORDER BY
+    client.company_name, debt_note.debt_id, debt_note.create_date DESC

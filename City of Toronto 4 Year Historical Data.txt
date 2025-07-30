@@ -1,0 +1,59 @@
+WITH historical_data as
+
+(
+SELECT four_year_historical_data.period AS "Period",	
+sum(four_year_historical_data.assigned_count) AS "Asgn #",
+sum(four_year_historical_data.assigned_value) AS "Currency:Asgn $",	
+sum(four_year_historical_data.assigned_average) AS "Currency:Asgn Avg",	
+sum(four_year_historical_data.collected_current_value) AS "Coll Curr",	
+sum(four_year_historical_data.collected_current_percentage) AS "Coll Curr %",	
+sum(four_year_historical_data.collected_to_date) AS "Coll To Date",	
+sum(four_year_historical_data.collected_to_date_percentage) AS "Coll To Date %",	
+sum(four_year_historical_data.commission_to_date) AS "Currency:Comm To Date",	
+sum(four_year_historical_data.commission_percentage) AS "Comm %",	
+sum(four_year_historical_data.cancel_count) AS "Cancel #",	
+sum(four_year_historical_data.cancel_value) AS "Currency:Cancel $",	
+sum(four_year_historical_data.cancel_percentage) AS "Cancel %",	
+sum(four_year_historical_data.open_count) AS "Open #",	
+sum(four_year_historical_data.open_value) AS "Currency:Open $",	
+sum(four_year_historical_data.pif_count) AS "# PIF"	,
+sum(four_year_historical_data.sif_count) AS "#SIF",
+(row_number() over(order by four_year_historical_data.period))-84 as sortorder
+from four_year_historical_data, client
+where 
+four_year_historical_data.client_id = client.client_id
+AND client.customer_client_code in ('JK0784', 'JK1047')
+AND TO_DATE(four_year_historical_data.period, 'YYYY-MM') < (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '4 years')
+group by four_year_historical_data.period
+
+union
+
+select
+TO_CHAR(client_summary.month,'Mon YYYY') "Period",	
+sum(client_summary.placement_count) "Asgn #",
+sum(client_summary.assigned_balance) "Currency:Asgn $",	
+case when sum(client_summary.placement_count)=0 then 0 else sum(client_summary.assigned_balance)/sum(client_summary.placement_count) end "Currency:Asgn Avg",	
+sum(client_summary.current_balance) "Coll Curr",	
+case when sum(client_summary.assigned_balance)=0 then 0 else sum(client_summary.current_balance)/sum(client_summary.assigned_balance)/100 end "Coll Curr %",	
+sum(client_summary.payments) "Coll To Date",	
+case when sum(client_summary.assigned_balance)=0 then 0 else sum(client_summary.payments)/sum(client_summary.assigned_balance) end "Coll To Date %",	
+sum(client_summary.commissions) "Currency:Comm To Date",	
+case when sum(client_summary.assigned_balance)=0 then 0 else sum(client_summary.commissions)/sum(client_summary.assigned_balance) * 100 end "Comm %",	
+sum(client_summary.cancelled) "Cancel #",	
+sum(client_summary.cancelled_balance) "Currency:Cancel $",	
+case when sum(client_summary.assigned_balance)=0 then 0 else sum(client_summary.cancelled_balance)/sum(client_summary.assigned_balance) * 100 end "Cancel %",	
+sum(client_summary.open) "Open #",	
+sum(client_summary.owing_balance) "Currency:Open $",	
+sum(client_summary.pif) "# PIF"	,
+
+sum(client_summary.sif) "#SIF",
+row_number() over(order by client_summary.month) as sortorder
+from client_summary
+where client_summary.customer_client_code in ('JK0784', 'JK1047') 
+and client_summary.month > (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 years')
+group by client_summary.month
+) 
+select 
+"Period", "Asgn #", "Currency:Asgn $"	,"Currency:Asgn Avg"	,"Coll Curr"	,"Coll Curr %"	,"Coll To Date"	,"Coll To Date %"	,"Currency:Comm To Date"	,"Comm %"	,"Cancel #"	,"Currency:Cancel $"	,"Cancel %"	,"Open #"	,"Currency:Open $"	,"# PIF"	,"#SIF"
+from historical_data
+order by sortorder

@@ -1,0 +1,27 @@
+SELECT
+    debt.debt_id
+    ,debt.reference_number
+    ,CASE 
+        WHEN debt.misc002 IS NULL
+        THEN bmo_early.bmo_product
+        ELSE debt.misc002
+        END as Product
+FROM
+    debt
+LEFT JOIN
+    bmo_early ON debt.debt_id = bmo_early.debt_id
+LEFT JOIN
+    debt_cancel ON debt.debt_id = debt_cancel.debt_id
+WHERE
+    1=1
+    AND debt.client_id = '${ClientCode:Clients}'
+    AND debt.assigned_date < CURRENT_DATE
+    AND (
+        (
+            debt.closed_date is NULL
+            OR debt.closed_date > CURRENT_DATE
+        ) OR (
+            debt_cancel.cancel_date is NULL
+            OR debt_cancel.cancel_date > CURRENT_DATE
+        )
+    )

@@ -1,0 +1,12 @@
+SELECT
+    'Dialer Attempts',
+    date_trunc('day',debt_phone_log.call_date),
+    count(*)
+FROM debt_phone_log, debt
+    WHERE debt_phone_log.debt_id = debt.debt_id
+    AND date_trunc('day',debt_phone_log.call_date) BETWEEN ${DateRange:CallDates}
+    AND debt.customer_client_code in ('JK1097','JK1113')
+    --AND debt_phone_log.source_type LIKE '%DIALER%'
+    --AND debt.misc002 not in ('CAD DEPOSIT ACC','CAD LOANS')
+group by 
+    date_trunc('day',debt_phone_log.call_date)

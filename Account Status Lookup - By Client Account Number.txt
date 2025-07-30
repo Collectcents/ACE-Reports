@@ -1,0 +1,11 @@
+Select
+debt.customer_client_code as "Docket",
+debt.client_account_number as "Client Account Number",
+debt.debt_id as "Ace Debt #",
+debt.debt_status_code as "Status Code",
+COALESCE(debt.last_payment_amount,'') as "Last Pay Amount",
+COALESCE(debt.last_pay_date,'') as "Last Pay Date"
+
+From debt
+
+Where debt.client_account_number =1

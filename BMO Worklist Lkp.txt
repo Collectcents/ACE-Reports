@@ -1,0 +1,12 @@
+Select
+worklist.label,
+debt.debt_id
+
+From debt
+
+Left Join worklist on debt.worklist_id=worklist.worklist_id
+Inner Join debt_status_code On debt.debt_status_code=debt_status_code.debt_status_code
+
+Where debt.customer_client_code='JK1097'
+AND debt_status_code.debt_status_code_group Not In ('CLOSED','CANCELLED','PAID','SETTLED')
+AND worklist.label Is Null

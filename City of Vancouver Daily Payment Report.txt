@@ -1,0 +1,17 @@
+Select
+account.client_account_number as "Client Reference Number",
+payment.trans_date as "Transaction Date",
+payment.amount as "Transaction Amount",
+'0' as "Misc",
+payment.amount as "Net Transaction Amount",
+auto.plate_num as "License Plate",
+auto.plate_prov as "Plate Province",
+COALESCE(NULLIF(account.first_name, '') || ' ' || NULLIF(account.last_name, ''),account.company_name) AS "Debtor Name"
+
+From account, payment, auto
+
+Where account.debt_id=payment.debt_id
+AND account.debt_id=auto.debt_id
+AND payment.trans_date > Now() - (INTERVAL '1 days')
+AND account.customer_client_code In ('JK0987','JK0991','JK1001','JK1049','JK1059')
+and payment.payment_dest_id  != 781

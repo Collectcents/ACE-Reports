@@ -1,0 +1,1 @@
+select debt.debt_id,sum(debt_trans.amount) from debt,debt_trans where lower(debt.customer_client_code) = 'jk0958' and debt.assigned_date between '2017-09-01' and '2017-09-30' and debt_trans.type_name like 'ASSIGNED' and debt.debt_id = debt_trans.debt_id group by debt.debt_id,debt.assigned_balance having debt.assigned_balance != sum(debt_trans.amount) limit 1000

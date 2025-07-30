@@ -1,0 +1,12 @@
+select debt.reference_number,debt.debt_id,debt.assigned_date,debt.current_balance,debt_conv_anita.acurrbal as "Anita Balance",debt.received_balance,count(anita_invoice_history.debt_id)
+
+
+from debt,debt_conv_anita,anita_invoice_history 
+
+where debt.debt_id = debt_conv_anita.debt_id 
+and debt.debt_id = anita_invoice_history.debt_id 
+and debt.customer_client_code in('TECHSTAND','TECHOE3','TECHOE1','TECHFS3','TECHFS1','TECHED3','TECHED1','TECHBPV3','TECHBPV1','TECHAD1') 
+
+group by debt.reference_number,debt.debt_id,debt.assigned_date,debt.current_balance,debt_conv_anita.acurrbal,debt.received_balance
+
+limit 100

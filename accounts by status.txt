@@ -1,0 +1,1 @@
+select debt.debt_status_code,count(debt.debt_id) from debt group by debt.debt_status_code order by count(debt.debt_id) desc

@@ -1,0 +1,12 @@
+SELECT
+    distinct(debt_phone_log.debt_id),
+    debt.client_account_number,
+    count(debt_phone_log.debt_id),
+    debt.misc002
+from
+    debt_phone_log
+    LEFT JOIN
+        debt ON debt.debt_id = debt_phone_log.debt_id
+WHERE 1 = 1
+    AND debt.customer_client_code = 'JK1097'
+    AND debt_phone_log.call_date BETWEEN ${DateRange:CallDates}

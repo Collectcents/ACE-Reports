@@ -1,0 +1,16 @@
+SELECT 
+    account.customer_account_number AS "Ticket #",
+    CONCAT(account.last_name, ', ', account.first_name, ' ', account.middle_name) AS "Name",
+    CONCAT(account.address1, ', ', account.address2, ' ', account.city, ' ', account.state, ' ', account.zip, ' ', account.country_code) AS "Address",
+    CASE WHEN account.phone_home IS NOT NULL THEN 'Home' ELSE '' END AS "Phone# Type Home",
+    account.phone_home AS "Home Phone #",
+    CASE WHEN account.phone_work IS NOT NULL THEN 'Work' ELSE '' END AS "Phone# Type Work",
+    account.phone_work AS "Work Phone #",
+    CASE WHEN account.phone_fax IS NOT NULL THEN 'Fax' ELSE '' END AS "Phone# Type Fax",
+    account.phone_fax AS "Fax Phone #"
+FROM 
+    account
+WHERE 
+    account.assigned_date = ${DateTime:Date} --Tested:'2024-03-04'
+    AND (account.customer_client_code LIKE 'JK1194%'
+    OR account.customer_client_code LIKE 'JK1211%')

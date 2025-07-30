@@ -1,0 +1,17 @@
+Select
+debt.debt_id,
+debt.reference_number,
+debt.client_account_number,
+debt.assigned_date,
+debt.customer_client_code,
+debt.debt_status_code,
+debt_conv_cubs_1.misc2,
+debt_conv_cubs_1.misc3
+
+From debt,debt_status_code, debt_conv_cubs_1
+
+Where debt.debt_id=debt_conv_cubs_1.debt_id
+AND debt.debt_status_code=debt_status_code.debt_status_code
+AND debt.assigned_date > CURRENT_DATE- Interval '200 days'
+AND debt_status_code.debt_status_code_group Not In ('CLOSED','CANCELLED')
+AND debt.customer_client_code IN ('JK0611','JK0852','JK0948','JK0995')

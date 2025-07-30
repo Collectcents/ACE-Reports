@@ -1,0 +1,19 @@
+SELECT
+    debt.debt_id,
+    demographic.first_name,
+    demographic.last_name,
+    demographic_email.email_address,
+    client_categories.local_phone_eng,
+    client_categories.toll_free_eng,
+    debt.client_name,
+    demographic.phone_home,
+    debt.customer_client_code
+FROM
+    debt
+LEFT JOIN demographic ON debt.debt_id = demographic.debt_id
+LEFT JOIN demographic_email on debt.debt_id = demographic_email.debt_id
+LEFT JOIN debt_flag on debt.debt_id = debt_flag.debt_id
+LEFT JOIN client_categories on debt.client_id = client_categories.client_id
+WHERE
+    demographic.demographic_type = 'PRIMARY'
+    AND debt_flag.identifier = 'BMO_EMAIL_QUALIFY'

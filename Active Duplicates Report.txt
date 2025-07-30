@@ -1,0 +1,23 @@
+Select
+debt.customer_client_code as "Docket",
+debt.client_account_number as "Client Account Number",
+debt.debt_id as "Ace Debt ID",
+debt.debt_status_code as "Status",
+debt.assigned_date as "Assigned Date",
+debt.current_balance as "Current Balance"
+
+
+From debt, debt_status_code
+
+Where debt.customer_client_code In (${String:Client Codes})
+AND debt.debt_status_code=debt_status_code.debt_status_code
+AND debt_status_code.debt_status_code_group Not In ('PAID','SETTLED','CANCELLED','CLOSED','SUSPENDED')
+AND debt.client_account_number IN (
+    SELECT debt.client_account_number
+    FROM debt, debt_status_code
+    Where debt.customer_client_code In (${String:Client Codes})
+    AND debt.debt_status_code=debt_status_code.debt_status_code
+    AND debt_status_code.debt_status_code_group Not In ('PAID','SETTLED','CANCELLED','CLOSED','SUSPENDED')
+    GROUP BY debt.client_account_number
+    HAVING COUNT(*) > 1
+  )

@@ -1,0 +1,2 @@
+--select client.customer_client_code from client where client_id in (select client_ledger_entry.client_id from client_ledger_entry where lower(client_ledger_entry.memo) like '%conve%' )
+select debt_trans.debt_id,debt_trans.client_charge_return as "amount returned" from debt_trans where debt_trans.client_charge_return >0

@@ -1,0 +1,11 @@
+Select Distinct
+debt.customer_client_code,
+debt.misc003,
+debt.misc004,
+client_data.collectibility,
+client_data.assignment_level
+
+From debt, client_data
+
+WHere debt.debt_id=client_data.debt_id
+AND debt.client_id IN (${ClientCodes:Client})

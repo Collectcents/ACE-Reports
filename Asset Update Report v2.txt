@@ -1,0 +1,272 @@
+WITH numbered_rows AS (
+    SELECT 
+       '~UPDATE~' as "2",
+       'NOTES~' AS "3",
+       COALESCE(client_data.asset_id_2::TEXT, '') || '~' AS "4",
+        LEFT(COALESCE(auth_user_passwd.username, ''),12) || '~' AS "5",
+        To_Char(debt_note.create_date,'MMDDYYYYHHMMSS') ||'~'AS "6",
+        REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(substring(array_to_string(debt_note.parameters, ',') FROM '(.*)'),E'\r',''),E'\n',''),'"',''),',',''),'~','') AS "7",
+        --substring(array_to_string(debt_note.parameters, ',') FROM '(.*)') AS "7",
+        NULL::TEXT AS "8",
+        NULL::TEXT AS "9",
+        NULL::TEXT AS "10",
+        NULL::TEXT AS "11",
+        NULL::TEXT AS "12",
+        NULL::TEXT AS "13",
+        NULL::TEXT AS "14",
+        NULL::TEXT AS "15",
+        NULL::TEXT AS "16",
+        NULL::TEXT AS "17",
+        NULL::TEXT AS "18",
+        NULL::TEXT AS "19",
+        NULL::TEXT AS "20",
+        NULL::TEXT AS "21",
+        NULL::TEXT AS "22",
+        NULL::TEXT AS "23",
+        NULL::TEXT AS "24",
+        NULL::TEXT AS "25",
+        NULL::TEXT AS "26"
+        
+    FROM
+        client_data, debt_note, auth_user_passwd, debt
+    WHERE
+        client_data.debt_id = debt.debt_id AND
+        debt.debt_id = debt_note.debt_id AND
+        debt_note.user_id = auth_user_passwd.user_id AND
+        client_data.asset_id_2 Is Not Null AND
+        debt_note.note_type in ('TRANSACTION','USER','TEXT','EMAIL','PHONE') AND
+        debt.client_id  In (${ClientCodes:ClientCodes}) AND
+        date(debt_note.create_date) BETWEEN ${DateRange:Date} AND
+        debt_note.user_id!=105272
+
+    UNION ALL
+
+    SELECT
+        '~UPDATE~' as "2",
+        'PAYMENT~' AS "3",
+        COALESCE(client_data.asset_id_2::TEXT, '') || '~' AS "4",
+        To_CHAR(payment.trans_date,'MMddyyyy')||'~' AS "5",
+        (payment.amount*.01)||'~' AS "6",
+        CASE 
+            WHEN payment.payment_dest_label = 'Cheque' THEN '2'
+            WHEN payment.payment_dest_label = 'Wire' THEN '10'
+            WHEN payment.payment_dest_label = 'Money Order' THEN '9'
+            WHEN payment.payment_dest_label = 'Money Gram' THEN '4'
+            WHEN payment.payment_dest_label = 'Cash' THEN '1'
+            WHEN payment.payment_dest_label = 'Direct' THEN '16'
+            WHEN payment.payment_dest_label = 'PAD Text' THEN '11'
+            WHEN payment.payment_dest_label = 'Online Banking' THEN '104'
+            WHEN payment.payment_dest_label = 'E-Transfer' THEN '6'
+            WHEN payment.payment_dest_label = 'FBPS' THEN '104'
+            WHEN payment.payment_dest_label = 'Vira Payment Portal' THEN '19'
+            WHEN payment.payment_dest_label = 'nuvei' THEN '19'
+            ELSE NULL 
+        END||'~' AS "7",
+        CASE 
+            WHEN account.debt_status_code = 'PIF' THEN '4'
+            ELSE '10'
+        END ||'~' AS "8",
+        '~' AS "9",
+        '~' AS "10",
+        '~' AS "11",
+        '~' AS "12",
+        account.state AS "13",
+        NULL::TEXT AS "14",
+        NULL::TEXT AS "15",
+        NULL::TEXT AS "16",
+        NULL::TEXT AS "17",
+        NULL::TEXT AS "18",
+        NULL::TEXT AS "19",
+        NULL::TEXT AS "20",
+        NULL::TEXT AS "21",
+        NULL::TEXT AS "22",
+        NULL::TEXT AS "23",
+        NULL::TEXT AS "24",
+        NULL::TEXT AS "25",
+        NULL::TEXT AS "26"
+       
+    FROM
+        payment, client_data, account
+    WHERE
+        payment.debt_id = client_data.debt_id AND
+        client_data.debt_id = account.debt_id AND
+        client_data.asset_id_2 Is Not Null AND
+        payment.payment_dest_label in ('Cheque','Wire','Money Order','Money Gram',
+        'Cash','PAD Text','Online Banking','E-Transfer','FBPS','Visa Payment Portal','nuvei')  AND 
+        account.client_id  In (${ClientCodes:ClientCodes}) AND
+        date(payment.last_update) BETWEEN ${DateRange:Date}
+
+    UNION ALL 
+
+    SELECT
+        '~UPDATE~' as "2",
+        'CUSTOMER~' AS "3",
+        CASE WHEN demographic.demographic_type = 'PRIMARY' THEN 'PRIMARY'ELSE 'SECONDARY' END ||'~' AS "4",
+        COALESCE(client_data.client_ref_1::TEXT, '') || '~' AS "5",
+        CASE 
+            WHEN demographic.preferred_language='fr' THEN '2'
+            Else '1'
+        END ||'~' AS "6",
+        COALESCE(To_CHAR(demographic.dob,'MMDDYYYY'))||'~' AS "7",
+        COALESCE(demographic.alias, '') || '~' AS "8",
+        '~' AS "9",
+        '~' AS "10",
+        COALESCE(demographic.employer_name, '') || '~' AS "11",
+        COALESCE(demographic.misc003, '') || '~' AS "12",
+        '~' AS "13",
+        '0~' AS "14",
+        '~' AS "15",
+        '~' AS "16",
+        '~' AS "17",
+        '~' AS "18",
+        '~' AS "19",
+        NULL::TEXT AS "20",
+        NULL::TEXT AS "21",
+        NULL::TEXT AS "22",
+        NULL::TEXT AS "23",
+        NULL::TEXT AS "24",
+        NULL::TEXT AS "25",
+        NULL::TEXT AS "26"
+
+    FROM 
+        demographic, debt, client_data
+    WHERE 
+        debt.debt_id = demographic.debt_id AND
+        debt.debt_id = client_data.debt_id AND
+        client_data.asset_id_2 Is Not Null AND
+        debt.client_id  In (${ClientCodes:ClientCodes}) AND
+        date(demographic.last_update) BETWEEN ${DateRange:Date} AND
+        demographic.demographic_type Not In ('ORIGINAL') AND
+        debt.is_primary_debt='t' AND
+        demographic.last_modified_by !=105272 --not updated by a job
+
+    UNION ALL
+
+    SELECT
+        '~UPDATE~' as "2",
+        'ADDRESS~' AS "3",
+        CASE 
+            WHEN demographic.demographic_type = 'PRIMARY' THEN 'PRIMARY' 
+            WHEN demographic.demographic_type = 'CO_MAKER' THEN 'SECONDARY'
+            ELSE NULL END ||'~' AS "4",
+        --new
+        COALESCE(client_data.client_ref_1, '') || '~' AS "5",
+        'HOME~' AS "6",
+    COALESCE(demographic.address1, '') || '~' AS "7",
+    COALESCE(demographic.address2, '') || '~' AS "8",
+    COALESCE(demographic.city, '') || '~' AS "9",
+    COALESCE(demographic.state, '') || '~' AS "10",
+    COALESCE(demographic.zip, '') || '~' AS "11",
+    COALESCE(demographic.country_code, '') || '~' AS "12",
+    COALESCE(demographic.phone_home, '') || '~' AS "13",
+    COALESCE(demographic.phone_home_ext, '') || '~' AS "14",
+    COALESCE(demographic.phone_fax, '') || '~' AS "15",
+    COALESCE(demographic.phone_cell, '') || '~' AS "16",
+    COALESCE(demographic.phone_pager, '') || '~' AS "17",
+    COALESCE(demographic.email, '') || '~' AS "18",
+        '~' AS "19",
+        CASE WHEN demographic.mail_return='t' THEN '1' ELSE '0' END ||'~' AS "20",
+        '0~',
+        '~' AS "22",
+        '~' AS "23",
+        '~' AS "24",
+        '~' AS "25",
+        NULL::TEXT AS "26"
+        
+    FROM 
+        demographic, debt, client_data
+    WHERE 
+        demographic.debt_id = debt.debt_id AND
+        debt.debt_id = client_data.debt_id AND
+        client_data.asset_id_2 Is Not Null AND
+        debt.client_id  In (${ClientCodes:ClientCodes}) AND
+        date(demographic.last_update) BETWEEN ${DateRange:Date} AND
+        demographic.demographic_type Not In ('ORIGINAL') AND
+        debt.is_primary_debt='t' AND
+        demographic.last_modified_by !=105272
+        
+    UNION ALL
+
+    SELECT
+        '~UPDATE~' as "2",
+        'ACCOUNT~' AS "3",
+        COALESCE(client_data.asset_id_2::TEXT, '') || '~' AS "4",
+            CASE
+            WHEN debt.debt_status_code ='SKP' THEN '2'
+            WHEN debt.debt_status_code ='BRP' THEN '3'
+            WHEN debt.debt_status_code ='PTP' THEN '3'
+            WHEN debt.debt_status_code In ('LLB','LEG','PTS','JMT') THEN '4'
+            WHEN debt.debt_status_code In ('NSF','PDC','HOT','PAD','PAY') THEN '5'
+            WHEN debt.debt_status_code In ('DNCC','HFI','DIS','DISR') THEN '7'
+            WHEN debt.debt_status_code In ('CFR','COB','DUP','TOE','CCS','CAN','CLO','OPD','BAN','STA','DEC','CNR','CUR','LPF','PIF','LSF','SIF') THEN '8'
+            WHEN debt.debt_status_code In ('DNC','ACT','EXT','NAH','NBS') THEN '10'
+        END ||'~' AS "5",
+        TO_CHAR(debt.last_status_change_date,'MMDDYYYY')||'~' AS "6",
+        CASE
+            WHEN debt.debt_status_code ='SKP' THEN '2'
+            WHEN debt.debt_status_code ='BRP' THEN '4'
+            WHEN debt.debt_status_code ='PTP' THEN '5'
+            WHEN debt.debt_status_code ='JMT' THEN '14'
+            WHEN debt.debt_status_code In ('NSF','PDC') THEN '18'
+            WHEN debt.debt_status_code In ('HOT','PAD','PAY') THEN '20'
+            WHEN debt.debt_status_code In ('DIS','DISR') THEN '28'
+            WHEN debt.debt_status_code ='STA' THEN '32'
+            WHEN debt.debt_status_code ='DEC' THEN '33'
+            WHEN debt.debt_status_code In ('CNR','CUR','LPF','PIF') THEN '36'
+            WHEN debt.debt_status_code In ('LSF','SIF') THEN '37'
+            WHEN debt.debt_status_code In ('ACT','EXT','NAH','NBS') THEN '45'
+            WHEN debt.debt_status_code ='BAN' THEN '53'
+            WHEN debt.debt_status_code In ('CAN','CLO','OPD') THEN '58'
+            WHEN debt.debt_status_code In ('DUP','TOE') THEN '68'
+            WHEN debt.debt_status_code ='CCS' THEN '82'
+            WHEN debt.debt_status_code In ('DNCC','HFI') THEN '88'
+            WHEN debt.debt_status_code ='DNC' THEN '97'
+            WHEN debt.debt_status_code In ('LEG','PTS') THEN '104'
+            WHEN debt.debt_status_code ='LLB' THEN '105'
+            WHEN debt.debt_status_code ='CFR' THEN '106'
+            WHEN debt.debt_status_code ='COB' THEN '141'
+        END ||'~' AS "7",
+        COALESCE(TO_CHAR(debt.last_status_change_date,'MMDDYYYY'))||'~' AS "8",
+        COALESCE(debt.reference_number, debt.debt_id::TEXT) || '~' AS "9",
+        '~' as "10",
+        COALESCE(debt.primary_collector_id::TEXT, '') || '~' AS "11",
+        (debt.promised_payment_amount*0.01)||'~' AS "12",
+        CASE WHEN debt.promised_payment_date IS NULL THEN ''
+        ELSE TO_CHAR(debt.promised_payment_date,'MMDDYYYY') 
+        END ||'~' AS "13",
+        '~' as "14",
+        COALESCE(TO_CHAR(debt.last_contact_date,'MMDDYYYY')) AS "15",
+        NULL::TEXT AS "16",
+        NULL::TEXT AS "17",
+        NULL::TEXT AS "18",
+        NULL::TEXT AS "19",
+        NULL::TEXT AS "20",
+        NULL::TEXT AS "21",
+        NULL::TEXT AS "22",
+        NULL::TEXT AS "23",
+        NULL::TEXT AS "24",
+        NULL::TEXT AS "25",
+        NULL::TEXT AS "26"
+        
+    FROM 
+        debt
+        
+    INNER JOIN debt_status_code ON debt.debt_status_code=debt_status_code.debt_status_code
+    INNER JOIN client_data ON debt.debt_id = client_data.debt_id
+    LEFT JOIN debt_flag ON debt.debt_id=debt_flag.debt_id and debt_flag.identifier ='ASSET_FORCE_ACCOUNT_UPDATE' --remove after run
+    
+    WHERE
+        --debt.debt_status_code = debt_status_code.debt_status_code AND
+        --debt.debt_id = client_data.debt_id AND
+        client_data.asset_id_2 Is Not Null AND
+        debt.client_id  In (${ClientCodes:ClientCodes}) AND
+        --debt_status_code.debt_status_code_group IN ('ACTIVE','PROMISE','SKIP') AND
+        (date(debt.last_status_change_date) BETWEEN ${DateRange:Date} OR debt_flag.identifier='ASSET_FORCE_ACCOUNT_UPDATE')
+       -- debt.last_updated_by !=105272
+)
+
+SELECT 
+    ROW_NUMBER() OVER () AS row_num,
+    *
+FROM 
+    numbered_rows;

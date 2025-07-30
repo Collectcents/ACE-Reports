@@ -1,0 +1,27 @@
+SELECT
+    debt_trans.type_name AS "FLD",
+    SUM(CASE WHEN debt_trans.receiver='DIRECT' THEN 0 ELSE debt_trans.commission_amount END) "Currency:PAID AGENCY",
+    SUM(CASE WHEN debt_trans.receiver='OWNER' THEN 0 ELSE debt_trans.commission_amount END)  "Currency:PAID CLIENT",
+    SUM(CASE WHEN debt_trans.receiver='DIRECT' THEN 0 ELSE debt_trans.commission_amount END) + SUM(CASE WHEN debt_trans.receiver='OWNER' THEN 0 ELSE debt_trans.commission_amount END) AS "Currency:TOTAL"
+FROM
+    debt_trans, account--, forward, bank_account_entry
+WHERE 
+    account.debt_id = debt_trans.debt_id
+    AND debt_trans.trans_date BETWEEN ${DateTimeRange:Date}
+    --AND debt_trans.type_name = 'PAYMENT'
+GROUP BY
+    debt_trans.type_name
+    
+UNION ALL
+
+SELECT
+    'Total' AS "FLD",
+    SUM(CASE WHEN debt_trans.receiver='DIRECT' THEN 0 ELSE debt_trans.commission_amount END) "Currency:PAID AGENCY",
+    SUM(CASE WHEN debt_trans.receiver='OWNER' THEN 0 ELSE debt_trans.commission_amount END)  "Currency:PAID CLIENT",
+    SUM(CASE WHEN debt_trans.receiver='DIRECT' THEN 0 ELSE debt_trans.commission_amount END) + SUM(CASE WHEN debt_trans.receiver='OWNER' THEN 0 ELSE debt_trans.commission_amount END) AS "Currency:TOTAL"
+FROM
+    debt_trans, account--, forward, bank_account_entry
+WHERE 
+    account.debt_id = debt_trans.debt_id
+    AND debt_trans.trans_date BETWEEN ${DateTimeRange:Date}
+    --AND debt_trans.type_name = 'PAYMENT'

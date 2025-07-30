@@ -1,0 +1,17 @@
+SELECT 
+    debt.client_account_number AS "Client #",
+    debt_trans.trans_date AS "Date:Trans Date",
+    debt_trans.amount AS "Trans Amount",
+    NULLIF(NULL,0) AS "Gross Amount",
+    debt_trans.amount AS "Current Balance",
+    (select poa.plate from poa where poa.debt_id=debt.debt_id) AS "Plate",
+    debt.original_primary_state AS "State"
+FROM 
+    debt, debt_trans
+WHERE 
+    debt.debt_id = debt_trans.debt_id
+    AND debt.customer_client_code IN ('JK1110','JK1111','JK1112','JK1132')
+    AND debt_trans.trans_date BETWEEN ${DateTimeRange:Date}
+    AND debt_trans.type_name = 'PAYMENT'
+    --AND debt.cancelled = false
+ORDER BY debt_trans.trans_date

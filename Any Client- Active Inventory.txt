@@ -1,0 +1,25 @@
+SELECT
+account.customer_client_code As "CLIENT NO.",
+account.debt_id AS "ACCOUNT NO.",
+case when account.company_name is not null then account.company_name else concat(account.last_name,',',account.first_name,' ',account.middle_name) end AS "CLIENT NAME", -- check out
+account.client_account_number AS "CLIENT REFERENCE NUMBER",
+client_data.client_ref_1 AS "CLIENT REF1",
+client_data.client_ref_2 AS "CLIENT REF2",
+client_data.client_ref_3 AS "CLIENT REF3",
+TO_CHAR(account.assigned_date, 'MM/DD/YYYY') AS "ASSIGNED DATE",
+account.assigned_balance AS "Currency:TOTAL ASSIGNED BALANCE",
+(COALESCE(account.interest_owing, 0) - COALESCE(account.interest_assigned, 0)) AS "Currency:INTEREST ACCRUED",
+account.principal_received AS "Currency:PRINCIPAL RECEIVED",
+account.interest_received AS "Currency:INTEREST RECEIVED",
+account.current_balance AS "Currency:TOTAL BALANCE",
+TO_CHAR(account.last_pay_date, 'MM/DD/YYYY') AS "LAST PAYMENT DATE",
+debt_status_code.description AS "STATUS CODES"
+
+FROM 
+account, debt_status_code, client_data
+WHERE 
+account.debt_id=client_data.debt_id AND
+account.debt_status_code = debt_status_code.debt_status_code
+AND account.client_id IN (${ClientCodes:Client Codes})
+AND debt_status_code.debt_status_code_group NOT IN ('CLOSED','CANCELLED','SETTLED','PAID','SUSPENDED')--('ACIVE', 'LEGAL', 'NEW', 'PROMISE', 'SKIP','BANKRUPTCY')
+--ORDER BY account.last_pay_date DESC;

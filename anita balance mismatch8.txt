@@ -1,0 +1,1 @@
+select debt.reference_number,debt.debt_id,debt.assigned_date,debt.current_balance,debt_conv_anita.acurrbal from debt,client_categories,debt_conv_anita where debt.client_id = client_categories.client_id and client_categories.prev_sys like 'ANITA' and debt_conv_anita.acurrbal != debt.current_balance and debt.debt_id = debt_conv_anita.debt_id

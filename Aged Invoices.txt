@@ -1,0 +1,23 @@
+SELECT  
+ client.customer_client_code as "Client:Client",
+ client.remit_terms as "String:Terms",
+ client.company_name as "String:Name",
+
+ COALESCE((select sum(COALESCE(due_agency_balance,0)) from invoice where client.client_id = invoice.client_id AND paid IS FALSE AND delivered IS TRUE AND age(invoice.create_date) BETWEEN ('1 days'::interval + (CASE client.remit_terms WHEN 'ON_RECEIPT' THEN '0 days'::interval WHEN 'NET_10' THEN '10 days'::interval WHEN 'NET_15' THEN '15 days'::interval WHEN 'NET_30' THEN '30 days'::interval WHEN 'NET_45' then '45 days'::interval WHEN 'NET_60' then '60 days'::interval END)) AND ('31 days'::interval + ( CASE client.remit_terms WHEN 'ON_RECEIPT' THEN '0 days'::interval WHEN 'NET_10' THEN '10 days'::interval WHEN 'NET_15' THEN '15 days'::interval WHEN 'NET_30' THEN '30 days'::interval WHEN 'NET_45' then '45 days'::interval WHEN 'NET_60' then '60 days'::interval END))),0) as "Currency:1-30",
+ 
+ COALESCE((select sum(COALESCE(due_agency_balance,0)) from invoice where client.client_id = invoice.client_id AND paid IS FALSE AND delivered IS TRUE AND age(invoice.create_date) BETWEEN ('31 days'::interval + (CASE client.remit_terms WHEN 'ON_RECEIPT' THEN '0 days'::interval WHEN 'NET_10' THEN '10 days'::interval WHEN 'NET_15' THEN '15 days'::interval WHEN 'NET_30' THEN '30 days'::interval WHEN 'NET_45' then '45 days'::interval WHEN 'NET_60' then '60 days'::interval END)) AND ('60 days'::interval + ( CASE client.remit_terms WHEN 'ON_RECEIPT' THEN '0 days'::interval WHEN 'NET_10' THEN '10 days'::interval WHEN 'NET_15' THEN '15 days'::interval WHEN 'NET_30' THEN '30 days'::interval WHEN 'NET_45' then '45 days'::interval WHEN 'NET_60' then '60 days'::interval END))),0) as "Currency:31-60", 
+
+ COALESCE((select sum(COALESCE(due_agency_balance,0)) from invoice where client.client_id = invoice.client_id AND paid IS FALSE AND delivered IS TRUE AND age(invoice.create_date) BETWEEN ('61 days'::interval + (CASE client.remit_terms WHEN 'ON_RECEIPT' THEN '0 days'::interval WHEN 'NET_10' THEN '10 days'::interval WHEN 'NET_15' THEN '15 days'::interval WHEN 'NET_30' THEN '30 days'::interval WHEN 'NET_45' then '45 days'::interval WHEN 'NET_60' then '60 days'::interval END)) AND ('90 days'::interval + ( CASE client.remit_terms WHEN 'ON_RECEIPT' THEN '0 days'::interval WHEN 'NET_10' THEN '10 days'::interval WHEN 'NET_15' THEN '15 days'::interval WHEN 'NET_30' THEN '30 days'::interval WHEN 'NET_45' then '45 days'::interval WHEN 'NET_60' then '60 days'::interval END))),0) as "Currency:61-90", 
+ 
+ COALESCE((select sum(COALESCE(due_agency_balance,0)) from invoice where client.client_id = invoice.client_id AND paid IS FALSE AND delivered IS TRUE AND age(invoice.create_date) BETWEEN ('91 days'::interval + (CASE client.remit_terms WHEN 'ON_RECEIPT' THEN '0 days'::interval WHEN 'NET_10' THEN '10 days'::interval WHEN 'NET_15' THEN '15 days'::interval WHEN 'NET_30' THEN '30 days'::interval WHEN 'NET_45' then '45 days'::interval WHEN 'NET_60' then '60 days'::interval END)) AND ('120 days'::interval + ( CASE client.remit_terms WHEN 'ON_RECEIPT' THEN '0 days'::interval WHEN 'NET_10' THEN '10 days'::interval WHEN 'NET_15' THEN '15 days'::interval WHEN 'NET_30' THEN '30 days'::interval WHEN 'NET_45' then '45 days'::interval WHEN 'NET_60' then '60 days'::interval END))),0) as "Currency:91-120",
+ 
+ COALESCE((select sum(COALESCE(due_agency_balance,0)) from invoice where client.client_id = invoice.client_id AND paid IS FALSE AND delivered IS TRUE AND age(invoice.create_date) > ('121 days'::interval + (CASE client.remit_terms WHEN 'ON_RECEIPT' THEN '0 days'::interval WHEN 'NET_10' THEN '10 days'::interval WHEN 'NET_15' THEN '15 days'::interval WHEN 'NET_30' THEN '30 days'::interval WHEN 'NET_45' then '45 days'::interval WHEN 'NET_60' then '60 days'::interval END))),0)  as "Currency:>120",
+ 
+ COALESCE(client.past_due_balance,0) - COALESCE((select sum(COALESCE(due_agency_balance,0)) from invoice where client.client_id = invoice.client_id AND paid IS FALSE AND delivered IS TRUE ),0) as "Currency:Prev Bal",
+ COALESCE(client.past_due_balance,0) as "Currency:Balance"
+FROM
+  client
+WHERE
+  client.past_due_balance > 0
+ORDER BY
+  client.customer_client_code

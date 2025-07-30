@@ -1,0 +1,17 @@
+select debt.debt_id,
+    debt.customer_client_code,
+    debt.debt_status_code,
+    debt.assigned_date,
+    debt.bundle_id,
+    debt.current_balance,
+    debt.client_name
+from debt 
+LEFT JOIN client_categories ON client_categories.client_id = debt.client_id
+where debt.last_letter_sent_date is null 
+and debt.last_email_date is null 
+and debt.assigned_date>='2025-06-02' 
+and debt.debt_status_code in (select debt_status_code.debt_status_code from debt_status_code where debt_status_code.debt_status_code_group in ('ACTIVE','NEW'))
+and debt.customer_client_code NOT LIKE '%_P'
+and debt.customer_client_code NOT IN ('CM0162','CM0122', 'JK1097')
+AND client_categories.client_group != 'Commercial'
+AND debt.current_balance >= 25

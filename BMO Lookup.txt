@@ -1,0 +1,11 @@
+Select
+debt.delta_log_id,
+debt.debt_id,
+debt.customer_client_code
+
+From debt
+
+Where debt.delta_log_id Is Not Null
+AND debt.customer_client_code='JK1097'
+AND debt.debt_status_code='CAN'
+AND debt.last_status_change_date BETWEEN ${DateRange:Date}

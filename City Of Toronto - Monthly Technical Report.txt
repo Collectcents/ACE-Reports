@@ -1,0 +1,158 @@
+WITH payments AS (
+  SELECT
+    payment_plan.debt_id,
+    payment_plan_schedule.payment_plan_id,
+    payment_plan_schedule.amount,
+    payment_plan_schedule.payment_date,
+    ROW_NUMBER() OVER (
+      PARTITION BY payment_plan.debt_id
+      ORDER BY payment_plan_schedule.payment_date
+    ) AS rn
+  FROM payment_plan_schedule
+  INNER JOIN payment_plan ON payment_plan_schedule.payment_plan_id = payment_plan.payment_plan_id
+  WHERE 
+  payment_plan.debt_id IN (
+      SELECT debt_id 
+      FROM debt 
+      WHERE customer_client_code LIKE 'JK1047%'
+    )
+  AND payment_plan_schedule.payment_date > CURRENT_DATE
+),
+
+Dailer AS (
+SELECT 
+account.debt_id,
+debt_phone_log.phone_number,
+count(*) AS dailer_count
+FROM
+account
+INNER JOIN debt_phone_log ON account.debt_id = debt_phone_log.debt_id
+WHERE 
+debt_phone_log.call_date BETWEEN ${DateTimeRange: Date Range}
+AND account.customer_client_code LIKE 'JK1047%'
+GROUP BY 
+account.debt_id,
+debt_phone_log.phone_number
+),
+
+Dailer_Agg AS (
+  SELECT
+    debt_id,
+    'Y, ' || STRING_AGG(phone_number || ' - ' || dailer_count, ' | ') AS phone_activity
+  FROM Dailer
+  GROUP BY debt_id
+),
+
+SMS AS (
+SELECT 
+txt_msg_log.debt_id,
+COUNT(DISTINCT txt_msg_log.txt_msg_log_id) AS SMS_count
+FROM txt_msg_log 
+WHERE 
+txt_msg_log.create_date BETWEEN ${DateTimeRange: Date Range}
+AND txt_msg_log.debt_id IN(SELECT debt.debt_id
+      FROM debt
+      WHERE customer_client_code LIKE 'JK1047%'
+      ) 
+GROUP BY 
+txt_msg_log.debt_id
+),
+
+Email AS (
+    SELECT 
+       email_log.debt_id,
+       COUNT(DISTINCT email_log.email_queue_id) AS email_count
+    FROM email_log 
+    WHERE email_log.sent_date BETWEEN ${DateTimeRange: Date Range}
+    AND email_log.debt_id IN(
+      SELECT debt.debt_id
+      FROM debt
+      WHERE customer_client_code LIKE 'JK1047%'
+    )
+    GROUP BY email_log.debt_id
+),
+
+Letter AS (
+SELECT 
+   letter.debt_id,
+    COUNT(*) AS letter_count
+  FROM letter
+  WHERE letter.sent_status = 'SENT' 
+    AND letter.send_date BETWEEN ${DateTimeRange: Date Range}
+    AND letter.debt_id IN (
+      SELECT debt.debt_id
+      FROM debt
+      WHERE customer_client_code  LIKE 'JK1047%'
+    )
+  GROUP BY letter.debt_id
+),
+
+Contact AS (
+SELECT
+    debt_note.debt_id,
+    count(distinct debt_note.note_id) AS contact_count
+from
+    debt_note
+    INNER JOIN
+        client ON client.client_id = debt_note.client_id
+WHERE 1 = 1
+    AND debt_note.parameters[1] in ('706','704','308','304','508','504','604','208','204','408','404','108','104','DRD','707','307','507','607','207','807','407','107','702','302',
+    '502','602','202','402','102','309','509','209','409','109','703','303','503','603','203','403','803','103','RTP')
+    AND client.customer_client_code LIKE 'JK1047%' 
+    AND debt_note.create_date BETWEEN ${DateTimeRange: Date Range}
+    Group by debt_note.debt_id
+)
+
+SELECT
+
+account.client_account_number AS "Case_ID",
+'CBCC' AS "CA_RE_Name",
+
+CASE WHEN account.debt_status_code = 'PTP' THEN
+    CASE 
+        WHEN payments.amount IS NOT NULL AND payments.payment_date IS NOT NULL THEN
+          'Y, ' || TO_CHAR(payments.amount, 'FM9999990.00') || ' on ' || TO_CHAR(payments.payment_date, 'MM/DD/YYYY')
+        ELSE 'Y' END
+    ELSE 'N' END AS "CA_RE_Payment_Plan_Details",
+'N' AS "CA_RE_Social_Media_Action",
+
+COALESCE(Dailer_Agg.phone_activity, 'N') AS "CA_RE_Phone_Activity",
+ 
+CASE WHEN account.employer_name IS NULL THEN 'N'
+    ELSE 'Y, ' || COALESCE(account.employer_address1 || ', ', '') || account.employer_name || COALESCE(', ' || account.phone_work, '') END AS "CA_RE_Employment_Information",
+'N' AS "CA_RE_New_Addresses",
+
+CASE WHEN account.deceased = 't' THEN 'Y' ELSE 'N' END AS "CA_RE_Deceased_Status",
+
+CASE WHEN account.bankruptcy_id IS NOT NULL THEN 'Y' ELSE 'N' END AS "CA_RE_Bankruptcy_Status",
+
+CASE WHEN SMS.SMS_count IS NOT NULL THEN 'Y, ' || SMS.SMS_count ELSE 'N' END  AS "CA_RE_SMS_Text_Frequency",
+
+CASE WHEN Email.email_count IS NOT NULL THEN 'Y, ' || Email.email_count ELSE 'N' END  AS "CA_RE_Emails_Sent",
+
+CASE WHEN Letter.letter_count IS NOT NULL THEN 'Y, ' || Letter.letter_count ELSE 'N' END AS "CA_RE_Letters_Sent",
+
+CASE WHEN (SELECT demographic_address.mail_return FROM demographic_address  WHERE demographic_address.debt_id = account.debt_id AND demographic_address.demographic_type = 'PRIMARY' AND
+demographic_address.mail_return = 't' LIMIT 1) IS NOT NULL THEN 'Y' ELSE 'N' END AS "CA_RE_Return_Mail",
+
+CASE WHEN Contact.contact_count IS NOT NULL THEN 'Y' ELSE 'N' END  AS "CA_RE_Contact", 
+
+'N' AS "CA_RE_New_First_Name",
+'N' AS "CA_RE_New_Last Name",
+'N' AS "CA_RE_Hold_Date",
+'N' AS "CA_RE_Own_Property",
+CASE WHEN account.closed_date IS NULL AND debt_cancel.cancel_date IS NULL THEN 'A' ELSE 'N' END  AS "CA_RE_Company_Status",
+CASE WHEN account.debt_status_code = 'SKP' THEN 'A' ELSE 'U' END AS "CA_RE_Unable_To_Locate",
+'Y' AS "CA_RE_Credit_Worthiness"
+
+
+FROM
+account 
+LEFT JOIN debt_cancel ON account.debt_id = debt_cancel.debt_id
+LEFT JOIN payments ON account.debt_id = payments.debt_id AND payments.rn = 1
+LEFT JOIN Dailer_Agg ON account.debt_id = Dailer_Agg.debt_id
+LEFT JOIN SMS ON account.debt_id = SMS.debt_id
+LEFT JOIN Email ON account.debt_id = Email.debt_id
+LEFT JOIN Letter ON account.debt_id = Letter.debt_id
+LEFT JOIN Contact ON account.debt_id = Contact.debt_id
+WHERE account.customer_client_code LIKE 'JK1047%'

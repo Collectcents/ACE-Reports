@@ -1,0 +1,41 @@
+SELECT 
+    account.client_account_number AS "data_id",
+    --account.customer_client_code,
+    CASE 
+        WHEN debt.debt_status_code = 'PIF' THEN 1001
+        WHEN debt.debt_status_code = 'SIF' THEN 1002
+        WHEN debt.debt_status_code = 'NSF' THEN 1003
+        ELSE 1000
+    END AS "tran_type",
+    debt_trans.trans_date AS "tran_date",
+    --debt_trans.amount AS "tran_amount",
+    MAX(payment.amount) AS "tran_amount",
+    SUM(CASE WHEN debt_trans.bucket = 'PRINCIPAL' THEN debt_trans.amount ELSE NULL END) AS "tran_principal",
+    SUM(CASE WHEN debt_trans.bucket = 'INTEREST' THEN debt_trans.amount ELSE NULL END) AS "Interest Assigned",
+    --account.principal_assigned AS "tran_principal",
+    --account.interest_assigned,
+    SUM(CASE WHEN account.court_cost_assigned=0 THEN NULL ELSE account.court_cost_assigned END) AS "tran_court",
+    SUM(CASE WHEN account.attorney_fee_assigned=0 THEN NULL ELSE account.attorney_fee_assigned END) AS "tran_attorney",
+    '' AS "tran_nsf",
+    '' AS "tran_general",
+    '' AS "tran_other",
+    SUM(CASE WHEN debt_trans.commission_amount=0 THEN NULL ELSE debt_trans.commission_amount END) AS "Currency:tran_retained",
+    SUM(CASE WHEN debt_trans.commission_tax_amount+debt_trans.commission_tax2_amount=0 THEN NULL ELSE debt_trans.commission_tax_amount+debt_trans.commission_tax2_amount END) AS "Currency:tran_tax"
+FROM account
+JOIN debt ON account.debt_id = debt.debt_id -- Joining the debt table
+JOIN debt_trans ON account.debt_id = debt_trans.debt_id
+JOIN payment ON payment.debt_id = debt_trans.debt_id
+WHERE
+    --account.export = false --This flag needs to be updated to 'true' if it's exported
+    debt_trans.receiver = 'OWNER'
+    AND debt_trans.type_name = 'PAYMENT'
+    AND account.customer_client_code LIKE ANY (ARRAY[
+        'CM0041%', 'CM0042%', 'CM0043%', 'CM0044%', 'CM0045%', 'CM0046%', 'CM0047%', 'CM0048%', 
+        'CM0054%', 'CM0055%', 'CM0056%', 'CM0057%', 'CM0058%', 'CM0059%', 'CM0060%', 'CM0061%', 
+        'CM0062%', 'CM0063%', 'CM0064%', 'CM0065%', 'CM0066%', 'CM0073%', 'CM0074%', 'CM0075%', 
+        'CM0076%', 'CM0077%', 'CM0078%', 'CM0079%', 'CM0086%', 'CM0093%', 'CM0116%', 'CM0139%', 
+        'CM0140%', 'JK0960', 'JK096040'
+    ])
+    AND debt_trans.trans_date BETWEEN ${DateTimeRange:Date} --DATE_TRUNC('month', CURRENT_DATE) AND CURRENT_DATE --Tested: without date condition
+    GROUP BY account.client_account_number,debt_trans.trans_date,debt.debt_status_code
+ORDER BY debt_trans.trans_date DESC

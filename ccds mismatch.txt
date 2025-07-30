@@ -1,0 +1,12 @@
+--select count(debt.debt_id)
+select debt.debt_id,debt.reference_number,debt.current_balance as "ACE BAL",debt_conv_cubs_1.cur_bal as "CUBS BAL"
+from debt,debt_conv_cubs_1 
+
+where debt.current_balance != debt_conv_cubs_1.cur_bal 
+and debt.debt_id = debt_conv_cubs_1.debt_id 
+and  ((debt.current_balance - debt_conv_cubs_1.cur_bal)>25000 or (debt.current_balance - debt_conv_cubs_1.cur_bal)<-25000)
+and debt.debt_status_code not in (select debt_status_code.debt_status_code from debt_status_code where debt_status_code.debt_status_code_group in('CANCELLED','CLOSED','PAID','SETTLED'))
+and debt.client_id not in (select client_categories.client_id from client_categories where client_categories.prev_sys like 'ANITA' )
+and debt.debt_id not in (select payment.debt_id from payment)
+and debt.last_update <'2025-06-02'
+--and debt.delta_log_id in (188251,188250,188249,188248,188247,188246,188245,188244,188243,188242)

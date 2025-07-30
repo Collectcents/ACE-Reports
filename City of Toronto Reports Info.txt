@@ -1,0 +1,213 @@
+WITH PaymentPerDebt AS (
+    SELECT 
+        d.debt_id,
+        d.debt_status_code,
+        d.customer_client_code,
+        SUM(CASE WHEN dt.type_name = 'PAYMENT' THEN dt.amount ELSE 0 END) AS total_payment,
+       -- COUNT(CASE WHEN dt.type_name = 'PAYMENT' THEN 1 ELSE NULL END) AS payment_count,
+        MAX(dt.trans_date) AS last_payment_date
+    FROM debt d
+    JOIN debt_trans dt ON d.debt_id = dt.debt_id
+    WHERE 
+        (d.customer_client_code LIKE 'JK0784%' OR d.customer_client_code LIKE 'JK1047%')
+        AND dt.trans_date BETWEEN ${DateTimeRange:Date}
+    GROUP BY d.debt_id, d.debt_status_code, d.customer_client_code
+),
+
+TotalPaid AS (
+    SELECT 
+        COUNT(CASE WHEN debt_status_code = 'PIF' THEN 1 END) AS "Paid in Full#",
+        SUM(CASE WHEN debt_status_code = 'PIF' THEN total_payment ELSE 0 END) AS "Currency:Paid in Full$",
+
+        COUNT(CASE WHEN debt_status_code != 'PIF' AND total_payment > 0 THEN 1 END) AS "Partial Payment#",
+        SUM(CASE WHEN debt_status_code != 'PIF' AND total_payment > 0  THEN total_payment ELSE 0 END) AS "Currency:Partial Payment$",
+
+        COUNT(CASE WHEN total_payment>0 then 1 else null end) AS "Total Payments#",
+        SUM(total_payment) AS "Currency:Total Payments Amount$"
+    FROM PaymentPerDebt
+),
+
+
+PTP AS (
+    SELECT 
+    distinct CAST(debt.client_account_number AS TEXT)  AS "Case Number",
+    SUM(COALESCE(payment.amount, 0)) AS "Currency:Promise Amount",
+    CAST(debt.debt_id AS TEXT) AS "Account number"
+    FROM debt
+    LEFT JOIN payment ON debt.debt_id = payment.debt_id
+    JOIn payment_plan ON debt.debt_id = payment_plan.debt_id 
+    WHERE
+    (debt.customer_client_code LIKE 'JK0784%' OR debt.customer_client_code LIKE 'JK1047%')
+    --AND (debt.debt_status_code LIKE 'P%' AND debt.debt_status_code != 'PIF')
+    AND payment_plan.create_date BETWEEN ${DateTimeRange:Date}
+    AND payment_plan.payment_dest_id = 774
+    GROUP BY "Case Number", "Account number"
+),
+Recall AS (
+   SELECT 
+        distinct CAST(debt.client_account_number AS TEXT) AS "Case Number",
+        SUM(debt.assigned_balance) AS "Currency:Dollar Value",
+        debt.misc005 AS "Reason for Recall"
+    FROM debt 
+    WHERE (debt.customer_client_code LIKE 'JK0784%'
+    OR debt.customer_client_code LIKE 'JK1047%')
+    AND debt.closed_date BETWEEN ${DateTimeRange:Date}
+    AND debt.misc005 is not null
+    GROUP BY "Case Number", debt.misc005
+),
+Closed AS (
+   SELECT 
+        distinct CAST(debt.client_account_number AS TEXT) AS "Case Number",
+        SUM(debt.assigned_balance) AS "Currency:Dollar Value",
+        -- when "reason for closure" is null add account.debt_status_code else it will be "reason for closure"
+        case when debt.misc005 IS NULL then debt_status_code.label else debt.misc005 end AS "Reason for Closure"
+    FROM debt, debt_cancel, debt_status_code
+    WHERE 
+    debt.debt_status_code=debt_status_code.debt_status_code AND
+    debt.debt_id = debt_cancel.debt_id AND
+    (debt.customer_client_code LIKE 'JK0784%'
+    OR debt.customer_client_code LIKE 'JK1047%')
+    AND (debt.closed_date BETWEEN ${DateTimeRange:Date} OR debt_cancel.cancel_date BETWEEN ${DateTimeRange:Date})
+    --need to add reason for closure--
+    GROUP BY "Case Number", debt.misc005, debt_status_code.label
+),
+Worked AS (
+    SELECT
+        COUNT(Distinct debt.debt_id) AS "Active Inventory#",
+        SUM(debt.assigned_balance) AS "Currency:Assigned$",
+        COUNT(CASE WHEN (debt.calls > 0 OR debt.emails > 0 OR debt.texts > 0) OR debt.last_work_date IS NOT NULL THEN 1 ELSE NULL END) AS "Worked#",
+        SUM(CASE WHEN (debt.calls > 0 OR debt.emails > 0 OR debt.texts > 0) OR debt.last_work_date IS NOT NULL THEN debt.assigned_balance ELSE NULL END) AS "Currency:Worked",
+        COUNT(CASE WHEN (debt.calls != 0 AND debt.emails != 0 AND debt.texts != 0) AND debt.last_work_date IS NULL THEN 1 ELSE NULL END) AS "Not Worked#",
+        SUM(CASE WHEN (debt.calls != 0 AND debt.emails != 0 AND debt.texts != 0) AND debt.last_work_date IS NULL THEN debt.assigned_balance ELSE NULL END) AS "Currency:Not Worked"
+    FROM debt
+    LEFT JOIN debt_trans ON debt.debt_id = debt_trans.debt_id
+    LEFT JOIN  debt_cancel ON debt.debt_id = debt_cancel.debt_id
+    WHERE (debt.customer_client_code LIKE 'JK0784%'
+    OR debt.customer_client_code LIKE 'JK1047%')
+    AND (debt.closed_date IS NULL AND debt_cancel.cancel_date IS NULL)
+    --GROUP BY debt.debt_id
+)
+
+
+-- Main Query with UNIONs
+SELECT
+    'Payment Summary' AS "Section",
+    PaymentStatus."Payment Status",
+    PaymentStatus."Account Count",
+    PaymentStatus."Currency:Sum of Payments",
+    NULL AS "Case Number", 
+    NULL AS "Currency:Promise Amount", 
+    NULL AS "Account number",
+    NULL AS "Currency:Dollar Value",
+    NULL AS "Reason for Recall",
+    NULL AS "Reason for Closure"
+FROM (
+    SELECT 
+        'Paid in Full' AS "Payment Status", 
+        "Paid in Full#" AS "Account Count", 
+        "Currency:Paid in Full$" AS "Currency:Sum of Payments"
+    FROM TotalPaid
+    UNION ALL
+    SELECT 
+        'Partial Paid' AS "Payment Status", 
+        "Partial Payment#" AS "Account Count", 
+        "Currency:Partial Payment$" AS "Currency:Sum of Payments"
+    FROM TotalPaid
+    UNION ALL
+    SELECT 
+        'Total' AS "Payment Status", 
+        "Total Payments#" AS "Account Count", 
+        "Currency:Total Payments Amount$" AS "Currency:Sum of Payments"
+    FROM TotalPaid
+) AS PaymentStatus
+
+UNION ALL
+
+SELECT
+    'Recalls' AS "Section",
+    NULL AS "Payment Status",
+    NULL AS "Account Count",
+    NULL AS "Sum of Payments",
+    CAST("Case Number" AS TEXT),
+    NULL::NUMERIC AS "Currency:Promise Amount",
+    NULL::TEXT AS "Account number",
+    CAST("Currency:Dollar Value" AS NUMERIC),
+     "Reason for Recall",
+    NULL AS "Reason for Closure"
+FROM Recall
+
+UNION ALL
+
+SELECT
+    'PTPs' AS "Section",
+    NULL AS "Payment Status",
+    NULL AS "Account Count",
+    NULL AS "Sum of Payments",
+    CAST("Case Number" AS TEXT),
+    CAST("Currency:Promise Amount" AS NUMERIC),
+    CAST("Account number" AS TEXT),
+    NULL::NUMERIC AS "Dollar Value", 
+    NULL AS "Reason for Recall",
+    NULL AS "Reason for Closure"
+FROM PTP
+
+UNION ALL
+
+SELECT
+    'Closed Accounts' AS "Section",
+    NULL AS "Payment Status",
+    NULL AS "Account Count",
+    NULL AS "Sum of Payments",
+    CAST("Case Number" AS TEXT),
+    NULL AS "Promise Amount",
+    NULL AS "Account number",
+   CAST("Currency:Dollar Value" AS NUMERIC), 
+    NULL AS "Reason for Recall",
+   "Reason for Closure"
+FROM Closed
+
+-- New Section for Worked Accounts
+UNION ALL
+
+SELECT
+    'Active Inventory' AS "Section",
+    NULL AS "Payment Status",
+    "Active Inventory#" AS "Account Count",
+    "Currency:Assigned$" AS "Currency:Sum of Payments",
+    NULL AS "Case Number",
+    NULL::NUMERIC AS "Promise Amount",
+    NULL::TEXT AS "Account number",
+    NULL::NUMERIC AS "Dollar Value",
+    NULL AS "Reason for Recall",
+    NULL AS "Reason for Closure"
+FROM Worked
+
+UNION ALL
+
+SELECT
+    'Worked Accounts' AS "Section",
+    NULL AS "Payment Status",
+    "Worked#" AS "Account Count",
+    "Currency:Worked" AS "Currency:Sum of Payments",
+    NULL AS "Case Number",
+    NULL::NUMERIC AS "Promise Amount",
+    NULL::TEXT AS "Account number",
+    NULL::NUMERIC AS "Dollar Value",
+    NULL AS "Reason for Recall",
+    NULL AS "Reason for Closure"
+FROM Worked
+
+UNION ALL
+
+SELECT
+    'Not Worked Accounts' AS "Section",
+    NULL AS "Payment Status",
+    "Not Worked#" AS "Account Count",
+    "Currency:Not Worked" AS "Currency:Sum of Payments",
+    NULL AS "Case Number",
+    NULL::NUMERIC AS "Promise Amount",
+    NULL::TEXT AS "Account number",
+    NULL::NUMERIC AS "Dollar Value",
+    NULL AS "Reason for Recall",
+    NULL AS "Reason for Closure"
+FROM Worked

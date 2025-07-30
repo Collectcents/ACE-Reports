@@ -1,0 +1,26 @@
+SELECT 
+    debt.customer_client_code AS "Client Code",
+    CASE WHEN debt.reference_number IS NULL THEN debt.debt_id::TEXT ELSE debt.reference_number END AS "ACCOUNT",
+    REGEXP_REPLACE(debt.client_name, '\s*\(.*\)', '') AS "CLIENT NAME",
+    CASE WHEN account.company_name IS NULL Then CONCAT(account.last_name, ', ', account.first_name)
+    ELSE account.company_name
+    END AS "NAME",
+    bmo_early.bmo_product AS "PROD CD",
+    ROUND(debt.current_balance/100.0,2) AS "TOT BAL_INT",
+    debt.debt_status_code AS "ST CD",
+    debt.client_account_number AS "CD",
+    COALESCE(TO_CHAR(debt.promised_payment_date, 'YYYY-MM-DD'), '') AS "PTP DATE",
+    ROUND(debt.promised_payment_amount/100.0,2) AS "PROMISED PMT AMT"
+FROM 
+    account
+INNER JOIN debt ON account.debt_id = debt.debt_id
+LEFT JOIN debt_cancel ON debt.debt_id = debt_cancel.debt_id
+LEFT JOIN bmo_early ON bmo_early.debt_id = debt.debt_id
+WHERE
+    debt.debt_status_code IN ('PTP','PAY')
+    AND (debt.closed_date IS NULL OR debt_cancel.cancel_date IS NULL)
+    AND debt.promised_payment_date >= CURRENT_DATE
+    AND debt.promised_payment_amount IS NOT NULL
+    AND (debt.current_balance IS NOT NULL AND debt.current_balance > 0)
+    AND account.customer_client_code LIKE ANY (ARRAY['JK1113%', 'JK1117%', 'JK1097%', 'JK1114%'])
+ORDER BY debt.promised_payment_date;

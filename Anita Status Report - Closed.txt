@@ -1,0 +1,28 @@
+Select
+account.assigned_date AS "ASSIGNED DATE",
+CASE 
+    WHEN account.company_name IS NULL OR TRIM(account.company_name) = '' 
+    THEN CONCAT(account.first_name, ' ', account.last_name)
+    ELSE account.company_name
+END AS "CLIENT NAME",
+account.client_account_number AS "CLIENT ACCOUNT NUMBER",
+Sum(account.principal_assigned) AS "Currency:PRINCIPAL ASSIGNED",
+SUM(account.principal_received) AS "Currency:PRINCIPAL RECEIVED",
+debt_status_code.label AS "STATUS CODES",
+debt_status_code.debt_status_code AS "CD"
+
+From account,debt_status_code
+
+Where
+account.debt_status_code=debt_status_code.debt_status_code
+AND account.client_id = ${ClientCode:ClientCode}
+AND account.closed_date BETWEEN ${DateTimeRange:Date}
+AND debt_status_code.debt_status_code_group In ('CANCELLED', 'PAID', 'SETTLED', 'CLOSED')
+
+Group By 
+"CLIENT NAME",
+account.assigned_date,
+account.client_account_number,
+debt_status_code.label,
+account.customer_client_code,
+debt_status_code.debt_status_code

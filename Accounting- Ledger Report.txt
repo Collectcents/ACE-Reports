@@ -1,0 +1,17 @@
+SELECT 
+client.company_name AS "Client Name",
+client.customer_client_code AS "Client Code",
+client_ledger_entry.create_date AS "Create Date",
+client_ledger_entry.memo AS "Memo",
+client_ledger_entry.amount AS "Currency:Amount",
+auth_user_passwd.formatted_username AS "Created By",
+client_ledger_entry.ledger_entry_type AS "Ledger Entry Type",
+invoice.end_date AS "Invoice End Date"
+
+FROM
+client_ledger_entry
+INNER JOIN client ON client.client_id = client_ledger_entry.client_id
+LEFT JOIN invoice ON client_ledger_entry.invoice_id = invoice.invoice_id
+LEFT JOIN auth_user_passwd ON client_ledger_entry.created_by = auth_user_passwd.user_id
+WHERE 
+client_ledger_entry.create_date BETWEEN ${DateTimeRange:Date Range}

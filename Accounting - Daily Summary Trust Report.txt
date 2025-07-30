@@ -1,0 +1,25 @@
+SELECT
+    'Gross $' AS "Label",
+    SUM(debt_trans.commission_amount) AS "Currency:Total Commission"
+FROM
+    invoice_template
+JOIN invoice_template_client ON invoice_template_client.invoice_template_id=invoice_template.invoice_template_id
+JOIN client ON client.master_client_id = invoice_template_client.client_id
+JOIN debt_trans ON debt_trans.client_id=client.client_id
+WHERE 
+    invoice_template.label LIKE '%Gross%'
+    AND debt_trans.trans_date BETWEEN ${DateTimeRange:Date Range}
+
+UNION ALL
+
+SELECT
+    'Net $' AS "Label",
+    SUM(debt_trans.commission_amount) AS "Currency:Total Commission"
+FROM
+    invoice_template
+JOIN invoice_template_client ON invoice_template_client.invoice_template_id=invoice_template.invoice_template_id
+JOIN client ON client.master_client_id = invoice_template_client.client_id
+JOIN debt_trans ON debt_trans.client_id=client.client_id
+WHERE 
+    invoice_template.label LIKE '%Net%'
+    AND debt_trans.trans_date BETWEEN ${DateTimeRange:Date Range}

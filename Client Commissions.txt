@@ -1,0 +1,20 @@
+SELECT
+   client.customer_client_code as "String:Client Code",
+   debt.client_account_number as "String:Account Number",
+   client_commissions.debt_id as "String:Agency Number",
+   client_commissions.company_name as "String:Company",
+   client_commissions.username,
+   client_commissions.name,
+   client_commissions.transaction_date,
+   client_commissions.amount_collected,
+   client_commissions.commission_amount,
+   client_commissions.commission_rate as "Percent:Commission Rate"
+FROM
+   client, client_commissions, debt
+WHERE
+   client_commissions.transaction_date BETWEEN ${DateTimeRange:Date}
+   AND client_commissions.client_id = client.client_id
+   AND lower(client.customer_client_code) LIKE lower('${String:Client Code}')
+   AND client_commissions.debt_id = debt.debt_id
+ORDER BY
+   client.customer_client_code, client_commissions.company_name, client_commissions.transaction_date
