@@ -1,0 +1,108 @@
+-- Prior data summary
+SELECT
+  'Prior' AS "Period",
+  COUNT(debt.debt_id) AS "Asgn #",
+  SUM(debt.assigned_balance) AS "Currency:Asgn $",
+  CASE WHEN COUNT(debt.debt_id)!=0 THEN ROUND(SUM(debt.assigned_balance) / (COUNT(debt.debt_id)*100), 2) ELSE 0 END AS "Currency:Asgn Avg",
+  SUM(
+      CASE 
+        WHEN debt_trans.trans_date < (${DateTime:Date}::date - INTERVAL '4 years')
+        THEN debt_trans.amount 
+        ELSE 0 
+      END
+    ) AS "Coll Curr",
+  CASE 
+  WHEN SUM(debt.assigned_balance) != 0 THEN 
+    ROUND(
+      SUM(
+        CASE 
+          WHEN debt_trans.trans_date < (${DateTime:Date}::date - INTERVAL '4 years')
+          THEN debt_trans.amount 
+          ELSE 0 
+        END
+      ) / SUM(debt.assigned_balance),
+      4
+    )
+  ELSE 0 
+END AS "Coll Curr %",
+  SUM(debt_trans.amount) AS "Currency:Coll To Date",
+  CASE WHEN SUM(debt.assigned_balance) != 0 THEN ROUND(SUM(debt_trans.amount) / SUM(debt.assigned_balance), 4) ELSE 0 END AS "Coll To Date %",
+  SUM(debt_trans.commission_amount) AS "Currency:Comm To Date",
+  CASE 
+    WHEN SUM(debt_trans.amount) != 0 
+    THEN ROUND(SUM(debt_trans.commission_amount) / SUM(debt_trans.amount), 2) 
+    ELSE 0 
+  END AS "Comm %",
+  SUM(CASE WHEN debt_status_code.debt_status_code_group IN ('CANCELLED', 'CLOSED') THEN 1 ELSE 0 END) AS "Cancel #",
+  SUM(CASE WHEN debt_status_code.debt_status_code_group IN ('CANCELLED', 'CLOSED') THEN debt.assigned_balance ELSE 0 END) AS "Currency:Cancel $",
+  CASE WHEN SUM(debt.assigned_balance) != 0 THEN SUM(CASE WHEN debt_status_code.debt_status_code_group IN ('CANCELLED', 'CLOSED') THEN debt.assigned_balance ELSE 0 END)/SUM(debt.assigned_balance) ELSE 0 END AS "Cancel %",
+  SUM(CASE WHEN debt.debt_status_code NOT IN ('AC10','AC11','AC12','AC13','AC14','AC15','AC16','AC17','AC18','AC19','AC2','AC24','AC4','AC5','AC6',
+                'AC7','AC70','AC79','AC8','AC80','AC9','ACFC','ACFD','ACNF','ACPF','ACPP','ACRB','ACSF','BAN','CAN','CCS','CEX','CFR','CLO','CNR','COB','CUR','DEC','DUP'
+                ,'FPF','LPF','LSF','OPD','PIF','SIF','TOE') THEN 1 ELSE 0 END) AS "Open #",
+  SUM(CASE WHEN debt.debt_status_code NOT IN ('AC10','AC11','AC12','AC13','AC14','AC15','AC16','AC17','AC18','AC19','AC2','AC24','AC4','AC5','AC6',
+                'AC7','AC70','AC79','AC8','AC80','AC9','ACFC','ACFD','ACNF','ACPF','ACPP','ACRB','ACSF','BAN','CAN','CCS','CEX','CFR','CLO','CNR','COB','CUR','DEC','DUP'
+                ,'FPF','LPF','LSF','OPD','PIF','SIF','TOE') THEN debt.assigned_balance ELSE 0 END) AS "Currency:Open $",
+  SUM(CASE WHEN debt.debt_status_code='PIF' THEN 1 ELSE 0 END) AS "PIF #",
+  SUM(CASE WHEN debt.debt_status_code='SIF' THEN 1 ELSE 0 END) AS "SIF #"
+
+FROM debt
+LEFT JOIN debt_trans ON debt_trans.debt_id = debt.debt_id AND debt_trans.type_name = 'PAYMENT'
+JOIN debt_status_code ON debt_status_code.debt_status_code = debt.debt_status_code
+WHERE debt.client_id IN ('${ClientCodes:Customer Client Code}')
+  AND debt.assigned_date < (${DateTime:Date}::date - INTERVAL '4 years')
+
+UNION ALL
+
+SELECT
+  TO_CHAR(debt.assigned_date, 'YYYY-MM') AS "Period",
+  COUNT(debt.debt_id) AS "Asgn #",
+  SUM(debt.assigned_balance) AS "Currency:Asgn $",
+  CASE WHEN COUNT(debt.debt_id)!=0 THEN ROUND(SUM(debt.assigned_balance) / (COUNT(debt.debt_id)*100), 2) ELSE 0 END AS "Currency:Asgn Avg",
+SUM(
+      CASE 
+        WHEN debt_trans.trans_date = debt.assigned_date
+        THEN debt_trans.amount 
+        ELSE 0 
+      END
+    ) AS "Coll Curr",
+  CASE 
+  WHEN SUM(debt.assigned_balance) != 0 THEN 
+    ROUND(
+      SUM(
+        CASE 
+          WHEN debt_trans.trans_date = debt.assigned_date
+          THEN debt_trans.amount 
+          ELSE 0 
+        END
+      ) / SUM(debt.assigned_balance),
+      4
+    )
+  ELSE 0 
+END AS "Coll Curr %",
+  SUM(debt_trans.amount) AS "Currency:Coll To Date",
+  CASE WHEN SUM(debt.assigned_balance) != 0 THEN ROUND(SUM(debt_trans.amount) / SUM(debt.assigned_balance), 4) ELSE 0 END AS "Coll To Date %",
+  SUM(debt_trans.commission_amount) AS "Currency:Comm To Date",
+  CASE 
+    WHEN SUM(debt_trans.amount) != 0 
+    THEN ROUND(SUM(debt_trans.commission_amount) / SUM(debt_trans.amount), 2) 
+    ELSE 0 
+  END AS "Comm %",
+  SUM(CASE WHEN debt_status_code.debt_status_code_group IN ('CANCELLED', 'CLOSED') THEN 1 ELSE 0 END) AS "Cancel #",
+  SUM(CASE WHEN debt_status_code.debt_status_code_group IN ('CANCELLED', 'CLOSED') THEN debt.assigned_balance ELSE 0 END) AS "Currency:Cancel $",
+  CASE WHEN SUM(debt.assigned_balance) != 0 THEN SUM(CASE WHEN debt_status_code.debt_status_code_group IN ('CANCELLED', 'CLOSED') THEN debt.assigned_balance ELSE 0 END)/SUM(debt.assigned_balance) ELSE 0 END AS "Cancel %",
+  SUM(CASE WHEN debt.debt_status_code NOT IN ('AC10','AC11','AC12','AC13','AC14','AC15','AC16','AC17','AC18','AC19','AC2','AC24','AC4','AC5','AC6',
+                'AC7','AC70','AC79','AC8','AC80','AC9','ACFC','ACFD','ACNF','ACPF','ACPP','ACRB','ACSF','BAN','CAN','CCS','CEX','CFR','CLO','CNR','COB','CUR','DEC','DUP'
+                ,'FPF','LPF','LSF','OPD','PIF','SIF','TOE') THEN 1 ELSE 0 END) AS "Open #",
+  SUM(CASE WHEN debt.debt_status_code NOT IN ('AC10','AC11','AC12','AC13','AC14','AC15','AC16','AC17','AC18','AC19','AC2','AC24','AC4','AC5','AC6',
+                'AC7','AC70','AC79','AC8','AC80','AC9','ACFC','ACFD','ACNF','ACPF','ACPP','ACRB','ACSF','BAN','CAN','CCS','CEX','CFR','CLO','CNR','COB','CUR','DEC','DUP'
+                ,'FPF','LPF','LSF','OPD','PIF','SIF','TOE') THEN debt.assigned_balance ELSE 0 END) AS "Currency:Open $",
+  SUM(CASE WHEN debt.debt_status_code='PIF' THEN 1 ELSE 0 END) AS "PIF #",
+  SUM(CASE WHEN debt.debt_status_code='SIF' THEN 1 ELSE 0 END) AS "SIF #"
+
+FROM debt
+LEFT JOIN debt_trans ON debt_trans.debt_id = debt.debt_id AND debt_trans.type_name = 'PAYMENT'
+JOIN debt_status_code ON debt_status_code.debt_status_code = debt.debt_status_code
+WHERE debt.client_id IN ('${ClientCodes:Customer Client Code}')
+  AND debt.assigned_date >= (${DateTime:Date}::date - INTERVAL '4 years')
+  AND debt.assigned_date < ${DateTime:Date}::date
+GROUP BY TO_CHAR(debt.assigned_date, 'YYYY-MM')
