@@ -1,0 +1,29 @@
+SELECT assigned_month month_assigned,
+       month_num month_received,
+       COALESCE(amount / 100,0) amount,
+       COALESCE(invoiced_amount / 100,0) invoiced_amount
+FROM (
+         SELECT (date_trunc('month', now()) - a * INTERVAL '1 month')::DATE assigned_month,
+                (date_trunc('month', now()) - b * INTERVAL '1 month')::DATE trans_month,
+                MAX(a - b, 0) month_num
+         FROM generate_series((DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '4 years'), DATE_TRUNC('month', CURRENT_DATE), '1 month') a,
+              generate_series((DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '4 years'), DATE_TRUNC('month', CURRENT_DATE), '1 month') b
+     ) allmonths
+         LEFT JOIN (
+    SELECT debt_trans.trans_month,
+           date_trunc('month', debt.assigned_date)::DATE AS assigned_month,
+           sum(debt_trans.amount) amount,
+		   sum(debt_trans.amount) FILTER (WHERE debt_trans.customer_invoice_id IS NOT NULL) invoiced_amount
+    FROM debt 
+	JOIN client USING (client_id)
+	JOIN debt_trans USING (debt_id)
+    WHERE debt_trans.operator = 'RECEIVED'
+	  AND debt_trans.mirror_debt_trans_id IS NULL
+      AND debt_trans.judgment_payment_trans_id IS NULL
+      AND (debt_trans.bucket = ANY(string_to_array(client.client_visible_buckets, ',')))
+      AND debt.customer_client_code = '${String:ClientCode}'
+    GROUP BY
+        date_trunc('month', debt.assigned_date),
+        debt_trans.trans_month
+) trans_data USING (trans_month, assigned_month)
+ORDER BY month_received

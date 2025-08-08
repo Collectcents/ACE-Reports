@@ -1,0 +1,5 @@
+SELECT 
+customer_client_code,
+company_name
+
+FROM client

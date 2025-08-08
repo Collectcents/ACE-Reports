@@ -1,0 +1,9 @@
+select 
+client.customer_client_code,
+client.company_name,
+client_categories.client_group,
+client.allows_settlement
+
+FROM client join client_categories on client.client_id = client_categories.client_id 
+
+WHERE  client.allows_settlement = 'F'

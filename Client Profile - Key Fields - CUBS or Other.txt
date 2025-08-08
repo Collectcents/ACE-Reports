@@ -1,0 +1,68 @@
+SELECT 
+    client.customer_client_code AS "Client Code",
+    client_categories.client_group,
+    client.company_name,
+    client.address1,
+    client.address2,
+    client.city,
+    client.state,
+    client.zip,
+    client.phone,
+    client.type_client_classification_id AS "Classification ID",
+    client.credit_report_account_type AS "Collection Type",
+    client.credit_report_portfolio_type AS "Portfolio Type",
+    invoice_template_client.invoice_template_id,
+    client.default_interest_rate,
+    client.allows_settlement,
+    client.min_settlement,
+    client.transaction_spreader_id,
+    client.invoice_payable_to,
+    client.bank_account_id AS "Trust Account ID",
+    client.bank_account_trans_destination_id AS "Remit Transfer Method ID",
+    client.remit_terms,
+    client.client_charge_buckets,
+    client.exclude_from_credit_reporting,
+    client.commission_rate_id,
+    client.commission_tax_rate_id,
+    client.commission_tax_rate2_id,
+    client_categories.company_name_2 AS "Company Name Alternate",
+    client_categories.client_url AS "Client Website",
+    client_categories.country,
+    client_categories.first_party,
+    client_categories.toll_free_eng,
+    client_categories.toll_free_french,
+    client_categories.local_phone_eng,
+    client_categories.local_phone_french,
+    client_categories.prev_sys,
+    client_categories.credit_day_delay,
+    client_categories.commericial_credit_report,
+    client_categories.initial_letter_action,
+    client_categories.va_accessible AS "VA Accessible",
+    client_categories.salesperson,
+    client_conv_cubs.commission_rate AS "CUBS Commission Rate",
+    client_conv_cubs.credit_reporting_delay AS "CUBS Credit Reporting Delay",
+    client_conv_cubs.invoice_type AS "CUBS Invoice Type",
+    client_conv_cubs.salesperson_id AS "CUBS Salesperson ID",
+    client_conv_cubs.statement_frequency AS "CUBS Statement Frequency",
+    client_conv_cubs.accronym AS "CUBS Acronym",
+    client.important_note
+
+    
+FROM 
+    client
+JOIN 
+    client_categories ON client_categories.client_id = client.client_id
+    
+LEFT JOIN 
+    invoice_template_client ON client.client_id = invoice_template_client.client_id
+    
+LEFT JOIN  
+    client_conv_cubs ON client_conv_cubs.client_id = client.client_id
+    
+
+WHERE 
+    client_categories.prev_sys <> 'ANITA'
+    
+ORDER BY
+    client_categories.client_group, 
+    client.customer_client_code;

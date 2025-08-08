@@ -1,0 +1,1 @@
+SELECT customer_client_code FROM client, client_categories WHERE client.client_id = client_categories.client_id AND UPPER(client_categories.client_group) = 'MEDICAL'

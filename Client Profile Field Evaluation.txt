@@ -1,0 +1,108 @@
+select 
+client.customer_client_code,
+client.company_name,
+client_categories.client_group,
+CASE
+when EXISTS (SELECT client_id FROM client_categories WHERE client_categories.country IS NULL and client_categories.client_id = client.client_id) THEN 'Client needs a country for dollar'
+ELSE 'Good'
+END as "Country Dollar",
+
+CASE
+when EXISTS (SELECT client_id FROM client_categories WHERE client_categories.client_group IS NULL and client_categories.client_id = client.client_id) THEN 'Client needs a client group'
+ELSE 'Good'
+END as "Client Group",
+
+CASE 
+when COALESCE (client.company_name, '') like '' THEN 'Client needs a company name'
+ELSE 'Good'
+END as "Client Name",
+
+CASE 
+when COALESCE (client.customer_client_code, '') like '' THEN 'Client needs a client code'
+ELSE 'Good'
+END as "Client Code",
+
+
+CASE 
+when COALESCE (client.address1, '') like '' THEN 'Client needs an address'
+ELSE 'Good'
+END as "Client Address",
+
+CASE 
+when COALESCE (client.phone, '') like '' THEN 'Client needs a phone number'
+ELSE 'Good'
+END as "Client Phone",
+
+CASE 
+when COALESCE (to_char(client.type_client_classification_id,'99999999'), '') like '' THEN 'Client needs a client classification type'
+ELSE 'Good'
+END as "Client Classification",
+
+CASE 
+when COALESCE (client.credit_report_account_type, '') like '' THEN 'Client needs an account type'
+ELSE 'Good'
+END as "Client Account Type",
+
+CASE 
+when COALESCE (client.credit_report_portfolio_type, '') like '' THEN 'Client needs a portfolio type'
+ELSE 'Good'
+END as "Client Portfolio Type",
+
+
+'' as "other items to consider :",
+
+CASE 
+when COALESCE (client.invoice_payable_to, '') like '' and COALESCE (to_char(client.bank_account_trans_destination_id,'99999999'), '') not like '' THEN 'client does not have an invoice payable name specified but has a remit method'
+ELSE 'Good'
+END as "invoice payable",
+
+CASE 
+when COALESCE (to_char(client.bank_account_trans_destination_id,'99999999'),'') not like '' THEN 'Good'
+ELSE 'Client needs remit transfer method'
+END as "remit transfer methods",
+
+CASE 
+when COALESCE (to_char(client.bank_account_id,'99999999'), '') not like '' THEN 'Good'
+ELSE 'Client needs trust account specified'
+END as "trust accounts",
+
+CASE 
+when COALESCE (client.remit_terms, '') not like '' THEN 'Good'
+ELSE 'Client needs remit terms specified'
+END as "remit terms",
+
+CASE 
+when COALESCE (client.client_charge_buckets, '') not like '' THEN 'Client has client charge buckets specified, please verify if this was intended'
+ELSE 'Good'
+END as "client charge buckets",
+
+CASE 
+when COALESCE (to_char(client.commission_rate_id,'99999999'), '') like '' THEN 'Client has no commission rate assigned'
+ELSE 'Good'
+END as "commission rate",
+
+CASE 
+when client.allows_settlement = true AND client.min_settlement = 0  THEN 'Client allows settlement but has no minimum settlement set'
+ELSE 'Good'
+END as "settlement min",
+
+CASE 
+when COALESCE (to_char(client.transaction_spreader_id,'99999999'), '') like '' THEN 'no transaction spreader set'
+ELSE 'Good'
+END as "client level trans spreader",
+
+CASE 
+when COALESCE (to_char(invoice_template_client.invoice_template_id,'99999999'), '') like '' THEN 'Client does not have at least 1 invoice profile assigned'
+ELSE 'Good'
+END as "invoice profiles",
+
+CASE 
+when client.exclude_from_credit_reporting is false AND COALESCE (client.credit_report_buckets, '') like '' THEN 'credit reporting is enabled but no buckets are selected'
+ELSE 'Good'
+END as "credit reporting buckets"
+
+from client_categories,client left join invoice_template_client
+on client.client_id = invoice_template_client.client_id
+
+where client_categories.client_id = client.client_id and client.customer_client_code not in ('SAMPLE1','SAMPLE2','SAMPLE3','TEST')
+order by client.customer_client_code desc

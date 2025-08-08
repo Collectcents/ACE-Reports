@@ -1,0 +1,8 @@
+SELECT
+client.customer_client_code,
+client.company_name
+FROM
+client, client_categories
+WHERE
+client.client_id = client_categories.client_id
+AND UPPER(client_categories.prev_sys) = 'ANITA'

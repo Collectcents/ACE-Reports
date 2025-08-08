@@ -1,0 +1,17 @@
+SELECT
+client.customer_client_code,
+client.company_name,
+'' as "Classification (See List)",
+'' as "Country (US/CA)",
+'' as "Allow Settlement (Boolean)",
+'' as "Settlement Percent (Percent)",
+'' as "Allow interest Write-off (Boolean)",
+(SELECT client_conv_cubs.business_class FROM client_conv_cubs WHERE client_conv_cubs.client_id = client.client_id) as "Business Class",
+client.primary_title,
+'' as "Company Name Alternate",
+'' as "DBA"
+FROM
+client,client_categories
+WHERE
+client_categories.client_id = client.client_id
+AND (UPPER(client_categories.prev_sys) != 'ANITA' OR client_categories.first_party IS TRUE)

@@ -1,0 +1,22 @@
+Select
+debt.debt_id,
+CASE WHEN debt.reference_number IS NUll Then debt.debt_id
+ELSE debt.reference_number
+END,
+debt.client_account_number,
+debt.customer_client_code,
+debt.client_name,
+debt.current_balance,
+debt.assigned_balance,
+debt.interest_assigned,
+debt.fee_assigned,
+debt.last_pay_date,
+debt.last_payment_amount,
+debt.debt_status_code,
+debt.last_status_change_date,
+debt.last_status_code,
+debt.last_work_date
+
+From debt
+
+Where debt.client_id In (${ClientCodes:Clients})

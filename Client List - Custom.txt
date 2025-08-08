@@ -1,0 +1,7 @@
+SELECT
+client.customer_client_code,
+client.company_name
+FROM
+client
+WHERE
+client.client_id NOT IN (SELECT client_id FROM client_categories WHERE UPPER(client_categories.prev_sys) = 'ANITA')
