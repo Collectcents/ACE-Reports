@@ -1,0 +1,23 @@
+SELECT 
+ client.customer_client_code as "customerClientCode",
+ client.company_name as "companyName",
+ debt.debt_id as "debtID",
+ debt.bundle_id as "bundleID",
+ debt.client_account_number as "clientAccountNumber",
+ format_name(primary_demographic.first_name, primary_demographic.middle_name, primary_demographic.last_name, primary_demographic.company_name) as "fullName",
+ primary_demographic.phone_home as "phoneHome",
+ primary_demographic.email as "email",
+ debt.debt_status_code as "statusCode",
+ debt.current_balance as "currentBalance",
+ debt.assigned_date as "assignedDate"
+FROM 
+ client, debt, demographic as primary_demographic
+WHERE 
+ client.client_id = debt.client_id 
+ AND debt.debt_id = primary_demographic.debt_id AND primary_demographic.demographic_type='PRIMARY'
+ AND debt.customer_account_number > '' AND (
+  CASE WHEN primary_demographic.address1 IS NULL OR primary_demographic.address1 = '' THEN 1 ELSE 0 END +
+  CASE WHEN primary_demographic.city IS NULL OR primary_demographic.city = '' THEN 1 ELSE 0 END +
+  CASE WHEN primary_demographic.state IS NULL OR primary_demographic.state = '' THEN 1 ELSE 0 END +
+  CASE WHEN primary_demographic.zip IS NULL OR primary_demographic.zip = '' THEN 1 ELSE 0 END
+) >= 2 LIMIT 10

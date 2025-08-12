@@ -1,0 +1,1 @@
+SELECT debt_id, raw_name FROM debt_conv_cubs_1 WHERE raw_name IS NOT NULL

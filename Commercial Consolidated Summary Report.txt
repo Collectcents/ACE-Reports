@@ -1,0 +1,98 @@
+with total as (
+Select
+Sum(debt.principal_assigned) AS "Currency:Listed"
+From debt,debt_status_code
+Where debt.debt_status_code=debt_status_code.debt_status_code
+AND debt_status_code.debt_status_code_group In ('CLOSED','CANCELLED','SETTLED')
+AND debt.client_id IN (${ClientCodes:ClientCode})
+AND debt.assigned_date BETWEEN ${DateTimeRange:Date})
+
+Select
+'CLOSED' AS "STATUS GROUP",
+Count(debt.debt_id)::text AS NUM,
+(Sum(debt.principal_assigned))::text AS "Currency:Listed",
+(Sum(debt.principal_received))::text AS "Currency:COLLECTED",
+(Sum(debt.principal_received)/Nullif(Sum(debt.principal_assigned),0))::text AS "% COLL"
+
+From debt,debt_status_code
+
+Where debt.debt_status_code=debt_status_code.debt_status_code
+AND debt_status_code.debt_status_code_group In ('CLOSED','CANCELLED','SETTLED','PAID')
+AND debt.client_id IN (${ClientCodes:ClientCode})
+AND debt.assigned_date BETWEEN ${DateTimeRange:Date}
+
+Union All
+
+Select
+'ACTIVE' AS "STATUS GROUP",
+Count(debt.debt_id)::text AS NUM,
+(Sum(debt.principal_assigned))::text AS "Currency:Listed",
+(Sum(debt.principal_received))::text AS "Currency:COLLECTED",
+(Sum(debt.principal_received)/Nullif(Sum(debt.principal_assigned),0))::text AS "% of Closed"
+
+From debt,debt_status_code
+
+Where debt.debt_status_code=debt_status_code.debt_status_code
+AND debt_status_code.debt_status_code_group In ('ACTIVE')
+AND debt.client_id IN (${ClientCodes:ClientCode})
+AND debt.assigned_date BETWEEN ${DateTimeRange:Date}
+
+UNION ALL
+
+Select
+'TOTAL' AS "STATUS GROUP",
+Count(debt.debt_id)::text AS NUM,
+(Sum(debt.principal_assigned))::text AS "Currency:Listed",
+(Sum(debt.principal_received))::text AS "Currency:COLLECTED",
+(Sum(debt.principal_received)/Nullif(Sum(debt.principal_assigned),0))::text AS "% COLL"
+
+From debt,debt_status_code
+
+Where debt.debt_status_code=debt_status_code.debt_status_code
+AND debt_status_code.debt_status_code_group In ('ACTIVE','CLOSED','CANCELLED','SETTLED','PAID')
+AND debt.client_id IN (${ClientCodes:ClientCode})
+AND debt.assigned_date BETWEEN ${DateTimeRange:Date}
+
+UNION ALL
+
+Select
+'' AS "STATUS GROUP",
+'' AS NUM,
+'' AS "Currency:Listed",
+'' AS "Currency:COLLECTED",
+'' AS "% COLL"
+
+UNION ALL
+
+Select
+'' AS "STATUS GROUP",
+'' AS NUM,
+'Details of Closed Accounts' AS "Currency:Listed",
+'' AS "Currency:COLLECTED",
+'' AS "% COLL"
+
+UNION ALL 
+
+Select
+'' AS "STATUS GROUP",
+'' AS NUM,
+'' AS "Currency:Listed",
+'' AS "Currency:COLLECTED",
+'' AS "% COLL"
+
+
+UNION ALL
+
+SELECT
+    UPPER(debt_status_code.label) AS "STATUS GROUP",
+    COUNT(debt.debt_id)::text AS NUM,
+    SUM(debt.principal_assigned)::text AS "Currency:Listed",
+    SUM(debt.principal_received)::text AS "Currency:COLLECTED",
+    (SUM(debt.principal_assigned) / NULLIF(total."Currency:Listed", 0))::text AS "% COLL"
+FROM debt
+JOIN debt_status_code ON debt.debt_status_code = debt_status_code.debt_status_code
+JOIN total ON 1=1  -- Joining the CTE properly
+WHERE debt_status_code.debt_status_code_group IN ('CLOSED', 'CANCELLED', 'SETTLED','PAID')
+AND debt.client_id IN (${ClientCodes:ClientCode})
+AND debt.assigned_date BETWEEN ${DateTimeRange:Date}
+GROUP BY UPPER(debt_status_code.label), total."Currency:Listed";

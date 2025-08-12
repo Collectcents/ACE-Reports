@@ -1,0 +1,65 @@
+-- COMMERCIAL - MTD
+SELECT
+  'COMMERCIAL' AS "Group",
+  'MTD' AS "Period",
+  (SUM(debt_trans.amount) * 0.01)::MONEY AS "RECEIVED",
+  (SUM(debt_trans.commission_amount) * 0.01)::MONEY AS "COMMISSION"
+FROM debt_trans
+INNER JOIN client_categories ON debt_trans.client_id = client_categories.client_id
+INNER JOIN debt_group_mapping ON debt_trans.debt_id = debt_group_mapping.debt_id
+WHERE debt_trans.create_date >= date_trunc('month', CURRENT_DATE)
+  AND (client_categories.client_group IN ('Commercial') OR debt_group_mapping.debt_group_id = '901')
+  AND debt_trans.operator = 'RECEIVED'
+  AND debt_trans.type_name = 'PAYMENT'
+  AND debt_trans.bucket != 'Overpayment'
+
+UNION ALL
+
+-- COMMERCIAL - Today
+SELECT
+  'COMMERCIAL' AS "Group",
+  'Today' AS "Period",
+  (SUM(debt_trans.amount) * 0.01)::MONEY AS "RECEIVED",
+  (SUM(debt_trans.commission_amount) * 0.01)::MONEY AS "COMMISSION"
+FROM debt_trans
+INNER JOIN client_categories ON debt_trans.client_id = client_categories.client_id
+INNER JOIN debt_group_mapping ON debt_trans.debt_id = debt_group_mapping.debt_id
+WHERE debt_trans.create_date >= CURRENT_DATE
+  AND (client_categories.client_group IN ('Commercial') OR debt_group_mapping.debt_group_id = '901')
+  AND debt_trans.operator = 'RECEIVED'
+  AND debt_trans.type_name = 'PAYMENT'
+  AND debt_trans.bucket != 'Overpayment'
+
+UNION ALL
+
+-- 3rd Party - MTD
+SELECT
+  '3rd Party' AS "Group",
+  'MTD' AS "Period",
+  (SUM(debt_trans.amount) * 0.01)::MONEY AS "RECEIVED",
+  (SUM(debt_trans.commission_amount) * 0.01)::MONEY AS "COMMISSION"
+FROM debt_trans
+INNER JOIN client_categories ON debt_trans.client_id = client_categories.client_id
+INNER JOIN debt_group_mapping ON debt_trans.debt_id = debt_group_mapping.debt_id
+WHERE debt_trans.create_date >= date_trunc('month', CURRENT_DATE)
+  AND (client_categories.client_group NOT IN ('Commercial') OR debt_group_mapping.debt_group_id != '901')
+  AND debt_trans.operator = 'RECEIVED'
+  AND debt_trans.type_name = 'PAYMENT'
+  AND debt_trans.bucket != 'Overpayment'
+
+UNION ALL
+
+-- 3rd Party - Today
+SELECT
+  '3rd Party' AS "Group",
+  'Today' AS "Period",
+  (SUM(debt_trans.amount) * 0.01)::MONEY AS "RECEIVED",
+  (SUM(debt_trans.commission_amount) * 0.01)::MONEY AS "COMMISSION"
+FROM debt_trans
+INNER JOIN client_categories ON debt_trans.client_id = client_categories.client_id
+INNER JOIN debt_group_mapping ON debt_trans.debt_id = debt_group_mapping.debt_id
+WHERE debt_trans.create_date >= CURRENT_DATE
+  AND (client_categories.client_group NOT IN ('Commercial') OR debt_group_mapping.debt_group_id != '901')
+  AND debt_trans.operator = 'RECEIVED'
+  AND debt_trans.type_name = 'PAYMENT'
+  AND debt_trans.bucket != 'Overpayment';

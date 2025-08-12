@@ -1,0 +1,26 @@
+WITH months AS (
+    SELECT 
+        generate_series(
+            date_trunc('month', NOW()) - INTERVAL '3 years', 
+            date_trunc('month', NOW()), 
+            '1 month'::interval
+        ) AS month
+)
+SELECT 
+    TO_CHAR(month, 'Mon-YYYY') AS Listed,
+    COALESCE(COUNT(a.debt_id), 0) AS "Integer:#Placement",
+    COALESCE(SUM(a.principal_assigned), 0) AS "Currency:$Placement",
+    COALESCE(SUM(a.principal_received), 0) AS "Currency:$Collection",
+    SUM(a.principal_received)/COALESCE(SUM(a.principal_assigned), 0) AS "Percentage:Recovery Rate",
+    COALESCE(SUM(a.promised_payment_amount), 0) AS "Currency:Promise to Pay"
+    
+FROM 
+    months m
+LEFT JOIN 
+    account a
+    ON date_trunc('month', a.assigned_date) = m.month
+    AND a.customer_client_code IN ('JK1056', 'JK1057', 'JK1063')
+GROUP BY 
+    m.month
+ORDER BY 
+    m.month;

@@ -1,0 +1,32 @@
+Select
+client.customer_client_code as "CLIENTCODE",
+'' as "DEBTORCODE", --not sure what this is, need to confirm with Frnak
+account.assigned_date as "LISTDATE",
+account.company_name as "NAME",
+account.address1 as "ADDRESS",
+account.city as "CITY",
+account.zip as "POST",
+account.phone_home as "PHONE1",
+account.phone_cell as "PHONE2",
+account.phone_work as "PHONE3",
+account.current_balance as "BALANCE",
+'' as "REFNO", --need Frank to specify what he wants here
+account.primary_collector_id as "COLLECTOR",
+account.mail_return as "MAILRET",
+account.last_letter_sent_config_id as "LAST LETTER",
+account.last_letter_sent_date as "DATE SENT",
+'' as "HOLD DATE", --we have a Validation Notice End Date but we have no workflow to populate it for commercial
+account.debt_status_code as "STATUS",
+'' as "STATDATE", --how is this set, there is an SOL Date field but we have no workflow to populate it for Commercial
+'' as "PROGRAM", -- not sure what this is, need to confirm with Frank
+anita_invoice_history.invoice_num as "INV NUMBER",
+anita_invoice_history.invoice_date as "INV DATE",
+anita_invoice_history.amount as "INV AMNT",
+anita_invoice_history.status as "INV STATUS"
+
+From account, client, anita_invoice_history
+
+Where account.client_id=client.client_id
+AND account.debt_id=anita_invoice_history.debt_id
+And account.client_id In (${ClientCodes:Clients})
+--does he want a date range for this?  Is it the assignment date?

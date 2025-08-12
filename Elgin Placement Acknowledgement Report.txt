@@ -1,0 +1,18 @@
+SELECT 
+    CURRENT_DATE AS "File Date",
+    account.customer_client_code AS "Client",
+    SUBSTRING(account.client_account_number, 1, 4) AS "Court#", --account.court_id
+    COUNT(account.customer_account_number) AS "No. of Accounts",
+    SUM(account.assigned_balance) AS "Amount Assigned",
+    SUM(CASE WHEN account.debt_status_code = 'PIF' THEN 1 ELSE 0 END) AS "No. of Payments",
+    SUM(CASE WHEN account.debt_status_code = 'PIF' THEN account.received_balance ELSE 0 END) AS "Total Paid Amount",
+    SUM(CASE WHEN account.forward_recall = true THEN 1 ELSE 0 END) AS "Total Recalls"
+FROM 
+    account
+WHERE
+    account.assigned_date = ${DateTime:Date} --2024-03-12
+    AND (account.customer_client_code LIKE 'JK0906%'
+    OR account.customer_client_code LIKE 'RC1965%'
+    OR account.customer_client_code LIKE 'RC1985%')
+GROUP BY
+    "Court#", "Client";

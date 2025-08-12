@@ -1,0 +1,19 @@
+SELECT
+    debt.debt_id,
+    debt.current_balance,
+    debt.assigned_date,
+    client.company_name,
+    demographic_email.email_address,
+    monthly_settlement_offer.email_sif_amount,
+    monthly_settlement_offer.email_sif_date,
+    monthly_settlement_offer.due_date,
+    CURRENT_DATE as "Scheduled Send Date"
+FROM
+    debt
+LEFT JOIN demographic_email on demographic_email.debt_id = debt.debt_id and demographic_email.demographic_type = 'PRIMARY'
+LEFT JOIN debt_flag  ON debt.debt_id = debt_flag.debt_id
+LEFT JOIN monthly_settlement_offer on monthly_settlement_offer.debt_id = debt.debt_id
+JOIN client ON debt.client_ID = client.client_id
+WHERE 1 = 1
+    AND debt_flag.identifier like '%EMAIL_SIF%'
+ORDER BY client.company_name asc

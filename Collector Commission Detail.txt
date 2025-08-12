@@ -1,0 +1,18 @@
+SELECT
+   client.customer_client_code as "Client:Client",
+   debt.client_account_number as "String:Account #",
+   user_commissions.debt_id as "Account:Agency #",
+   user_commissions.username as "String:Username",
+   user_commissions.name as "String:Name",
+   user_commissions.transaction_date  as "Date:Trans Date",
+   user_commissions.commission_rate as "Percent:Commission Rate",
+   user_commissions.amount_collected as "Currency:Amount Collected",
+   user_commissions.commissionable_amount as "Currency:Agency Commission",
+   user_commissions.amount_due_user  as "Currency:Due User"
+FROM
+   client, debt, user_commissions
+WHERE
+   user_commissions.transaction_date BETWEEN ${DateTimeRange:Date}
+   AND user_commissions.user_id = ${UserID:User}
+   AND client.client_id = debt.client_id
+   AND debt.debt_id=user_commissions.debt_id

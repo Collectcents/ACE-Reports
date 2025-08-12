@@ -1,0 +1,29 @@
+SELECT
+     demographic.first_name || ' ' || COALESCE(demographic.last_name, '') as Name
+,    demographic.company_name as Company
+,    (SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = debt.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1) as "Phone1"
+,    (SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = debt.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 1) as "Phone2"
+,    (SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = debt.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 2) as "Phone3"
+,    debt.owing_balance
+,    debt.last_status_code
+,    debt.primary_collector_id
+,    debt.client_id as CLIENTCODE
+,    debt.debt_id as DEBTORCODE
+,    debt.assigned_date as LISTDATE
+,    debt.client_account_number
+,    debt.client_account_number_last_4
+,    debt.customer_account_number
+,    client.company_name
+,    debt.last_status_change_date
+FROM
+    debt, demographic, client, client_categories, debt_status_code
+WHERE
+    1 = 1
+    AND debt.debt_id = demographic.debt_id
+    AND debt.client_id = client.client_id
+    AND client.client_id = client_categories.client_id
+    AND debt.last_status_code = debt_status_code.debt_status_code
+    AND lower(client_categories.client_group) = 'commercial'
+    AND lower(debt_status_code.debt_status_code_group) = 'active'
+    AND lower(demographic.demographic_type) = 'primary'
+    AND debt.worklist_id in (${String:Worklists})

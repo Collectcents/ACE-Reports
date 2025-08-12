@@ -1,0 +1,29 @@
+Select
+debt.debt_id,
+debt.customer_client_code,
+debt.client_account_number,
+demographic.demographic_type,
+demographic.first_name,
+demographic.middle_name,
+demographic.last_name,
+demographic.company_name,
+demographic.address1,
+demographic.address2,
+demographic.city,
+demographic.state,
+demographic.zip,
+demographic.country_code,
+demographic.phone_home,
+demographic.phone_home_ext,
+demographic.phone_work,
+demographic.phone_work_ext,
+demographic.phone_cell,
+demographic.phone_fax,
+demographic.phone_pager
+
+From debt,demographic,debt_flag
+
+Where debt.debt_id=demographic.debt_id
+AND debt.debt_id=debt_flag.debt_id
+AND debt_flag.identifier='COMMERCIAL_MOVE_TO_3RD'
+AND demographic.demographic_type Not In ('ORIGINAL','PRIMARY') --exclude original and primary as these are loaded with the accout info

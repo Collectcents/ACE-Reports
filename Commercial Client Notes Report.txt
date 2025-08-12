@@ -1,0 +1,22 @@
+Select
+--CASE 
+--    WHEN account.company_name IS NULL OR TRIM(account.company_name) = '' 
+--    THEN CONCAT(account.first_name, ' ', account.last_name)
+--    ELSE account.company_name
+--END AS "CLIENT NAME",
+CONCAT(account.first_name,' ',account.last_name) AS "Debtor",
+account.client_account_number,
+account.company_name,
+account.debt_id AS "Reference",
+to_char(debt_note.create_date,'MM/DD/YYYY') AS NOTEDATE,
+to_char(debt_note.create_date,'HH:mm AM') AS NOTETIME,
+parse_note(debt_note.identifier, debt_note.parameters, 'en', 'US') AS COMMENT
+From 
+    account,debt_note,auth_user_passwd
+Where
+    account.debt_id=debt_note.debt_id
+    AND auth_user_passwd.user_id=debt_note.user_id
+    AND auth_user_passwd.username != 'job'
+    AND account.client_id IN ('${ClientCodes:Client Codes}')
+    AND debt_note.create_date BETWEEN ${DateTimeRange:Date}
+    --AND debt_note.note_type In ('AGENT','IMPORTANT','PHONE')

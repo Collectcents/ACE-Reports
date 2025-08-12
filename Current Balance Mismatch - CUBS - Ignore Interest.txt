@@ -1,0 +1,29 @@
+WITH numbered_statuses AS (
+    SELECT
+    debt.debt_id,
+    debt.debt_status_code,
+    ROW_NUMBER() OVER (PARTITION BY debt_status_code ORDER BY debt.create_date) as row_num
+    FROM
+    debt
+)
+SELECT
+debt.debt_id,
+debt.reference_number,
+debt.customer_client_code,
+(SELECT SUM(debt_trans.amount) FROM debt_trans WHERE debt_trans.debt_id = debt.debt_id AND debt_trans.operator = 'OWING')-(SELECT SUM(debt_trans.amount) FROM debt_trans WHERE debt_trans.debt_id = debt.debt_id AND debt_trans.operator = 'RECEIVED') as "Currency: Cur Bal No Int",
+debt_conv_cubs_1.cur_bal as "Currency: TCS Current Balance",
+(SELECT SUM(debt_trans.amount) FROM debt_trans WHERE debt_trans.debt_id = debt.debt_id AND debt_trans.operator = 'OWING')-(SELECT SUM(debt_trans.amount) FROM debt_trans WHERE debt_trans.debt_id = debt.debt_id AND debt_trans.operator = 'RECEIVED')
+- debt_conv_cubs_1.cur_bal as "Currency: Difference",
+--debt.current_balance - debt_conv_cubs_1.cur_bal as "Currency: Difference",
+debt.debt_status_code
+FROM
+debt, debt_conv_cubs_1, numbered_statuses
+WHERE
+debt.debt_id = debt_conv_cubs_1.debt_id
+AND ((SELECT SUM(debt_trans.amount) FROM debt_trans WHERE debt_trans.debt_id = debt.debt_id AND debt_trans.operator = 'OWING')-(SELECT SUM(debt_trans.amount) FROM debt_trans WHERE debt_trans.debt_id = debt.debt_id AND debt_trans.operator = 'RECEIVED') != debt_conv_cubs_1.cur_bal
+OR debt_conv_cubs_1.cur_bal IS NULL)
+--AND debt.interest_effective_date IS NULL
+--AND debt.interest_rate = '0'
+AND debt.debt_id = numbered_statuses.debt_id
+AND numbered_statuses.row_num <= 10
+ORDER BY debt.debt_status_code

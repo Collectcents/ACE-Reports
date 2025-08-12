@@ -1,0 +1,3 @@
+with test as (select count(debt.debt_id),debt.client_account_number,demographic.first_name,demographic.last_name from demographic,debt  where demographic.debt_id = debt.debt_id and demographic.demographic_type = 'PRIMARY'  and date_trunc('day',debt.create_date)< '2024-12-01' group by debt.client_account_number,debt.client_account_number,demographic.first_name,demographic.last_name    having count(debt.debt_id)>1)
+
+select * from test left join (select string_agg(concat(demographic.address1,demographic.address2,demographic.city),'|') as "combined",debt.client_account_number from demographic,debt where demographic.debt_id = debt.debt_id group by debt.client_account_number) as a on a.client_account_number = test.client_account_number

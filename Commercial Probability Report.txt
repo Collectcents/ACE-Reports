@@ -1,0 +1,222 @@
+WITH Probability AS (
+    -- Summary: High
+    SELECT 
+        'High' AS probability_category,
+        COUNT(d.debt_id) AS num_accounts,
+        SUM(d.assigned_balance) AS total_listed,
+        SUM(d.current_balance) AS current_balance,
+        1 AS sort_order,
+        'High' AS parent_category
+    FROM client c
+    JOIN debt d ON c.client_id = d.client_id
+    WHERE 
+        d.misc008 = 'High'
+        AND d.client_id IN (${ClientCodes:ClientCode})
+        AND d.assigned_date BETWEEN ${DateTimeRange:Date}
+    
+    -- Summary: Low
+    UNION ALL
+    SELECT 
+        'Low', COUNT(d.debt_id), SUM(d.assigned_balance), SUM(d.current_balance), 3 AS sort_order, 'Low'
+    FROM client c
+    JOIN debt d ON c.client_id = d.client_id
+    WHERE 
+        d.misc008 = 'Low'
+        AND d.client_id IN (${ClientCodes:ClientCode})
+        AND d.assigned_date BETWEEN ${DateTimeRange:Date}
+        
+    -- Summary: Average
+    UNION ALL
+    SELECT 
+        'Average', COUNT(d.debt_id), SUM(d.assigned_balance), SUM(d.current_balance), 2 AS sort_order, 'Average'
+    FROM client c
+    JOIN debt d ON c.client_id = d.client_id
+    WHERE 
+        d.misc008 = 'Average'
+        AND d.client_id IN (${ClientCodes:ClientCode})
+        AND d.assigned_date BETWEEN ${DateTimeRange:Date}
+        
+    -- Summary: Unknown
+    UNION ALL
+    SELECT 
+        'Unknown', COUNT(d.debt_id), SUM(d.assigned_balance), SUM(d.current_balance), 4 AS sort_order, 'Unknown'
+    FROM client c
+    JOIN debt d ON c.client_id = d.client_id
+    WHERE 
+        d.misc008 = 'Unknown'
+        AND d.client_id IN (${ClientCodes:ClientCode})
+        AND d.assigned_date BETWEEN ${DateTimeRange:Date}
+    
+    -- Summary: Improbable
+    UNION ALL
+    SELECT 
+        'Improbable', COUNT(d.debt_id), SUM(d.assigned_balance), SUM(d.current_balance), 5 AS sort_order, 'Improbable'
+    FROM client c
+    JOIN debt d ON c.client_id = d.client_id
+    WHERE 
+        d.misc008 = 'Improbable'
+        AND d.client_id IN (${ClientCodes:ClientCode})
+        AND d.assigned_date BETWEEN ${DateTimeRange:Date}
+    
+    UNION ALL
+    
+    SELECT 
+        'Total' AS probability_category,
+        COUNT(d.debt_id) AS num_accounts,
+        SUM(d.assigned_balance) AS total_listed,
+        SUM(d.current_balance) AS current_balance,
+        6 AS sort_order,
+        'Total' AS parent_category
+    FROM client c
+    JOIN debt d ON c.client_id = d.client_id
+    WHERE 
+        d.misc008 in ('High','Low', 'Average', 'Improbable', 'Unknown')
+        AND d.client_id IN (${ClientCodes:ClientCode})
+        AND d.assigned_date BETWEEN ${DateTimeRange:Date}
+    
+    UNION ALL
+
+    SELECT 
+        'Details of Active Accounts', NULL, NULL, NULL, 7 AS sort_order, ' '
+        
+    UNION ALL
+
+    SELECT 
+        'High', NULL, NULL, NULL, 8 AS sort_order, ' '
+    
+    UNION ALL
+
+    SELECT 
+        '  ' || ds.label, COUNT(d.debt_id), SUM(d.assigned_balance), SUM(d.current_balance), 9 AS sort_order, 'High'
+    FROM client c
+    JOIN debt d ON c.client_id = d.client_id
+    JOIN debt_status_code ds ON ds.debt_status_code = d.debt_status_code
+    WHERE 
+        d.misc008 = 'High'
+        AND d.client_id IN (${ClientCodes:ClientCode})
+        AND d.assigned_date BETWEEN ${DateTimeRange:Date}
+    GROUP BY ds.label
+    
+    UNION ALL
+
+    SELECT 
+        'Low', NULL, NULL, NULL, 12 AS sort_order, ' '
+    
+    UNION ALL
+
+    SELECT 
+        '  ' || ds.label, COUNT(d.debt_id), SUM(d.assigned_balance), SUM(d.current_balance), 13 AS sort_order, 'Low'
+    FROM client c
+    JOIN debt d ON c.client_id = d.client_id
+    JOIN debt_status_code ds ON ds.debt_status_code = d.debt_status_code
+    WHERE 
+        d.misc008 = 'Low'
+        AND d.client_id IN (${ClientCodes:ClientCode})
+        AND d.assigned_date BETWEEN ${DateTimeRange:Date}
+    GROUP BY ds.label
+    
+    UNION ALL
+
+    SELECT 
+        'Average', NULL, NULL, NULL, 10 AS sort_order, ' '
+
+    UNION ALL
+
+    SELECT 
+        '  ' || ds.label, COUNT(d.debt_id), SUM(d.assigned_balance), SUM(d.current_balance), 11 AS sort_order, 'Average'
+    FROM client c
+    JOIN debt d ON c.client_id = d.client_id
+    JOIN debt_status_code ds ON ds.debt_status_code = d.debt_status_code
+    WHERE 
+        d.misc008 = 'Average'
+        AND d.client_id IN (${ClientCodes:ClientCode})
+        AND d.assigned_date BETWEEN ${DateTimeRange:Date}
+    GROUP BY ds.label
+    
+    UNION ALL
+
+    SELECT 
+        'Unknown', NULL, NULL, NULL, 14 AS sort_order, ' '
+    
+    UNION ALL
+
+    SELECT 
+        '  ' || ds.label, COUNT(d.debt_id), SUM(d.assigned_balance), SUM(d.current_balance), 15 AS sort_order, 'Unknown'
+    FROM client c
+    JOIN debt d ON c.client_id = d.client_id
+    JOIN debt_status_code ds ON ds.debt_status_code = d.debt_status_code
+    WHERE 
+        d.misc008 = 'Unknown'
+        AND d.client_id IN (${ClientCodes:ClientCode})
+        AND d.assigned_date BETWEEN ${DateTimeRange:Date}
+    GROUP BY ds.label
+    
+    UNION ALL
+
+    SELECT 
+        'Improbable', NULL, NULL, NULL, 16 AS sort_order, ' '
+    
+    UNION ALL
+
+    SELECT 
+        '  ' || ds.label, COUNT(d.debt_id), SUM(d.assigned_balance), SUM(d.current_balance), 17 AS sort_order, 'Improbable'
+    FROM client c
+    JOIN debt d ON c.client_id = d.client_id
+    JOIN debt_status_code ds ON ds.debt_status_code = d.debt_status_code
+    WHERE 
+        d.misc008 = 'Improbable'
+        AND d.client_id IN (${ClientCodes:ClientCode})
+        AND d.assigned_date BETWEEN ${DateTimeRange:Date}
+    GROUP BY ds.label
+),
+TotalListed AS (
+    SELECT SUM(total_listed) AS TotalListedAmount
+    FROM Probability
+    WHERE probability_category = 'Total'
+),
+TotalBalanceOwing AS (
+    SELECT SUM(current_balance) AS TotalBalanceOwing -- Corrected column name
+    FROM Probability
+    WHERE probability_category = 'Total'
+),
+
+-- Final SELECT
+Final AS (SELECT
+    p.probability_category AS "PROBABILITY CATEGORY",
+    p.num_accounts AS "NUM",
+    p.total_listed AS "Currency:LISTED",
+    p.current_balance AS "Currency:BALANCE OWING",
+    CASE
+        WHEN p.num_accounts IS NULL THEN NULL
+        WHEN t.TotalListedAmount = 0 THEN 0 -- Avoid division by zero
+        ELSE ROUND((p.current_balance / t.TotalListedAmount) * 100, 2) -- Calculate percentage
+    END AS "%OWING",
+    p.sort_order
+FROM Probability p
+CROSS JOIN TotalListed t
+WHERE p.sort_order <= 7
+    
+UNION
+
+SELECT
+    p.probability_category AS "PROBABILITY CATEGORY",
+    p.num_accounts AS "NUM",
+    p.total_listed AS "Currency:LISTED",
+    p.current_balance AS "Currency:BALANCE OWING",
+    CASE
+        WHEN p.num_accounts IS NULL THEN NULL
+        WHEN tbo.TotalBalanceOwing = 0 THEN 0
+        ELSE ROUND((p.current_balance / tbo.TotalBalanceOwing) * 100, 2)
+    END AS "%OWING",
+    p.sort_order
+FROM Probability p
+CROSS JOIN TotalBalanceOwing tbo
+WHERE p.sort_order > 7)
+
+select 
+"PROBABILITY CATEGORY",
+"NUM",
+"Currency:LISTED",
+"Currency:BALANCE OWING",+
+"%OWING"/100 AS "%OWING"
+from Final order by sort_order

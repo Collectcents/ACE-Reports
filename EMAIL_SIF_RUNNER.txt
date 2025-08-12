@@ -1,0 +1,22 @@
+SELECT
+    debt.debt_id,
+    debt.current_balance,
+    debt.assigned_date,
+    client.company_name,
+    demographic_email.email_address,
+    debt.current_balance*${Integer:SIFPercent}/100 as "Currency:SIF Amount",
+    ${Integer:SIFPercent} as "Integer:SIF Percent",
+    CURRENT_DATE + INTERVAL '${String:DaysDue}' as "Due Date",
+    CASE
+        WHEN ${Integer:MonthlyPayment} = 1 THEN debt.current_balance*${Integer:SIFPercent}/100
+        ELSE ${Integer:MonthlyPayment}
+    END as "Currency:Monthly Payments",
+    ${Integer:NumberOfMonths} as "Integer:NumberOfMonths",
+    CURRENT_DATE as "Scheduled Send Date"
+FROM
+    debt
+LEFT JOIN demographic_email on demographic_email.debt_id = debt.debt_id and demographic_email.demographic_type = 'PRIMARY'
+LEFT JOIN debt_flag  ON debt.debt_id = debt_flag.debt_id
+JOIN client ON debt.client_ID = client.client_id
+WHERE 1 = 1
+    AND debt_flag.identifier = '${String:Flag ID}'

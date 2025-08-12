@@ -1,0 +1,17 @@
+SELECT
+    debt.debt_id,
+    count(demographic_phone),
+    max(debt_phone_log.call_date)
+FROM
+    debt
+    LEFT JOIN debt_phone_log ON debt.debt_id = debt_phone_log.debt_id
+    LEFT JOIN debt_status_code ON debt.debt_status_code = debt_status_code.debt_status_code
+    LEFT JOIN demographic_phone ON debt.debt_id = demographic_phone.debt_id 
+                                    AND demographic_phone.demographic_type = 'PRIMARY'
+                                    AND demographic_phone.active = True
+WHERE
+    debt.customer_client_code = 'CM0141'
+    AND debt_status_code.debt_status_code_group IN ('ACTIVE','SKIP')
+    AND debt.debt_status_code not in ('DNC','HFI')
+GROUP BY 
+    debt.debt_id

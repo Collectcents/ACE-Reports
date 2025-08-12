@@ -1,0 +1,12 @@
+WITH numbered_statuses AS (
+    SELECT
+        debt.debt_id,
+        debt.reference_number,
+        debt.customer_client_code,
+        debt.debt_status_code,
+        ROW_NUMBER() OVER (PARTITION BY debt.debt_status_code ORDER BY debt.create_date) as row_num
+    FROM debt
+    WHERE lower(coalesce(debt.customer_client_code,'')) IN (lower('CM0090'),lower('CM0141R'))
+)
+
+SELECT debt_id,reference_number,customer_client_code,debt_status_code FROM numbered_statuses WHERE row_num <= 5;

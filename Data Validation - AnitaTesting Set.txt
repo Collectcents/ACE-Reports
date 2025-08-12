@@ -1,0 +1,12 @@
+WITH numbered_statuses AS (
+    SELECT
+        debt.debt_id,
+        debt.reference_number,
+        debt.customer_client_code,
+        debt.debt_status_code,
+        ROW_NUMBER() OVER (PARTITION BY debt.debt_status_code ORDER BY debt.create_date) as row_num
+    FROM debt
+    WHERE coalesce(debt.customer_client_code,'') IN ('ELECTRONICCA','MTSAUTO','ULINE','WHIRLPOOL','APPLIANCE3','CANATIRE3','YELLOWPAGES1','FEDEXFREIGHT','RBCACTIOND','YPGWEST1','YELLOWPAG3','TECHFS1','FINANCIAL0','CDNTIREUSA','EQUITABLE0','TECHFS3','CANATIRE2','MANULIFEF1','TECHBPV1','EXPORTDEV0','TECHED1','CANATIRE1','HOBARTFOOD')
+)
+
+SELECT debt_id,reference_number,customer_client_code,debt_status_code FROM numbered_statuses WHERE row_num <= 1;

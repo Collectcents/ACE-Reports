@@ -1,0 +1,66 @@
+SELECT
+account.debt_id AS "Debtor",
+CONCAT(account.first_name,' ',account.middle_name,' ',account.last_name) as "Name",
+(SELECT auth_user_passwd.misc2 FROM auth_user_passwd WHERE auth_user_passwd.user_id = account.primary_collector_id) as "Desk",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.demographic_type = 'PRIMARY' AND demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type = 'HOME' AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1) as "POR",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.demographic_type = 'PRIMARY' AND demographic_phone.debt_id = account.debt_id AND '23' = ANY(demographic_phone.enrichment_vendor_ids) AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1) as "TUPhone",--replace with Equifax Enrichment vendor ID
+account.current_balance as "Balance",
+TO_CHAR(account.assigned_date, 'MM-dd-YYYY') as "String:AssignedDate",
+account.customer_client_code as "Docket",
+CASE
+    WHEN account.state like 'Q%' THEN regexp_replace(client_categories.toll_free_french, '[^0-9]', '', 'g')
+    WHEN account.zip like 'G%' THEN regexp_replace(client_categories.toll_free_french, '[^0-9]', '', 'g')
+    WHEN account.zip like 'H%' THEN regexp_replace(client_categories.toll_free_french, '[^0-9]', '', 'g')
+    WHEN account.zip like 'J%' THEN regexp_replace(client_categories.toll_free_french, '[^0-9]', '', 'g')
+    WHEN account.zip like 'Q%' THEN regexp_replace(client_categories.toll_free_french, '[^0-9]', '', 'g')
+    WHEN (SELECT auth_user_passwd.misc3 FROM auth_user_passwd WHERE auth_user_passwd.user_id = account.primary_collector_id) like 'Q%' THEN regexp_replace(client_categories.toll_free_french, '[^0-9]', '', 'g')
+    WHEN regexp_replace(client_categories.toll_free_eng, '[^0-9]', '', 'g') = '8667512167' AND account.current_balance < 50000 THEN '8554388525'
+    ELSE regexp_replace(client_categories.toll_free_eng, '[^0-9]', '', 'g')
+END as "TollFree",
+CASE
+    WHEN account.state like 'Q%' THEN regexp_replace(client_categories.local_phone_french, '[^0-9]', '', 'g')
+    WHEN account.zip like 'G%' THEN regexp_replace(client_categories.local_phone_french, '[^0-9]', '', 'g')
+    WHEN account.zip like 'H%' THEN regexp_replace(client_categories.local_phone_french, '[^0-9]', '', 'g')
+    WHEN account.zip like 'J%' THEN regexp_replace(client_categories.local_phone_french, '[^0-9]', '', 'g')
+    WHEN account.zip like 'Q%' THEN regexp_replace(client_categories.local_phone_french, '[^0-9]', '', 'g')
+    WHEN (SELECT auth_user_passwd.misc3 FROM auth_user_passwd WHERE auth_user_passwd.user_id = account.primary_collector_id) like 'Q%' THEN regexp_replace(client_categories.local_phone_french, '[^0-9]', '', 'g')
+    WHEN regexp_replace(client_categories.toll_free_eng, '[^0-9]', '', 'g') = '8667512167' AND account.current_balance < 50000 THEN '9055654536'
+    ELSE regexp_replace(client_categories.local_phone_eng, '[^0-9]', '', 'g')
+END as "LocalDID",
+account.email as "EmailAddress",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1) as "ExternalPhone1",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 1) as "ExternalPhone2",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 2) as "CoPhone1",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 3) as "CoPhone2",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 4) as "Subr1",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 5) as "Subr2",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 6) as "HomePhone",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 7) as "PayPhone",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 8) as "TelusOtherPhone",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 9) as "Phone2",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 10) as "SecondCoPhone1",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 11) as "SecondCoPhone2",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 12) as "SAMatPhone",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 13) as "FirstCell",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 14) as "SecondPOR",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 15) as "CWPhone",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 16) as "Subr3",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 17) as "EmpPhone",
+(SELECT phone_number FROM demographic_phone WHERE demographic_phone.debt_id = account.debt_id AND demographic_phone.location_type NOT IN ('WORK','FAX') AND demographic_phone.status IN ('NEW','ACTIVE','VERIFIED') AND demographic_phone.country_code = 'CA' ORDER BY demographic_phone.contact_priority LIMIT 1 OFFSET 18) as "Emp2Phone",
+account.state as "PRC",
+'' as "Score", --Score
+CASE 
+    WHEN account.last_call_date IS NULL THEN '01-01-1901' 
+    ELSE TO_CHAR(account.last_call_date, 'MM-dd-YYYY') 
+END AS "String:Last Called",
+'' as "TUScore" --TUScore
+FROM
+account, client_categories
+WHERE
+account.client_id = client_categories.client_id
+AND account.debt_id IN (SELECT debt_id FROM debt_flag WHERE identifier = 'YOURVOICE_DIALER')
+ORDER BY 
+    CASE 
+        WHEN account.last_call_date IS NULL THEN '01-01-1901' 
+        ELSE TO_CHAR(account.last_call_date, 'MM-dd-YYYY') 
+    END

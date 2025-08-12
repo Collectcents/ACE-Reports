@@ -1,0 +1,17 @@
+SELECT
+debt.debt_id,
+debt.reference_number,
+debt.current_balance,
+debt_conv_anita.acurrbal as "Currency: Anita Current Balance",
+debt.current_balance - debt_conv_anita.acurrbal as "Currency: Difference",
+debt.debt_status_code
+FROM
+debt, debt_conv_anita
+WHERE
+debt.debt_id = debt_conv_anita.debt_id
+AND debt.current_balance != debt_conv_anita.acurrbal
+AND debt_conv_anita.acurrbal > 0
+AND debt.current_balance != 0
+--OR debt_conv_anita.acurrbal IS NULL)
+--AND debt.customer_client_code IN ('ELECTRONICCA','MTSAUTO','ULINE','WHIRLPOOL','APPLIANCE3','CANATIRE3','YELLOWPAGES1','FEDEXFREIGHT','RBCACTIOND','YPGWEST1','YELLOWPAG3','TECHFS1','FINANCIAL0','CDNTIREUSA','EQUITABLE0','TECHFS3','CANATIRE2','MANULIFEF1','TECHBPV1','EXPORTDEV0','TECHED1','CANATIRE1','HOBARTFOOD')
+--LIMIT 100

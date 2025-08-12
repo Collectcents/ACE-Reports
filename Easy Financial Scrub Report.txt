@@ -1,0 +1,45 @@
+Select
+account.client_account_number AS "ID",
+client_data.client_ref_1 AS "CUSTOMER_CONTACT_C",
+account.first_name AS "CUSTOMER_CONTACT_R.FIRSTNAME",
+account.last_name AS "CUSTOMER_CONTACT_R.LASTNAME",
+account.address1 AS "CUSTOMER_CONTACT_R.MAILINGSTREET",
+account.city AS "CUSTOMER_CONTACT_R.MAILINGCITY",
+account.state AS "CUSTOMER_CONTACT_R.MAILINGSTATE",
+account.zip AS "CUSTOMER_CONTACT_R.POSTALCODE",
+account.dob AS "CONTACT_BIRTHDATE_C",
+' ' AS "CUSTOMER_CONTACT_R.SIN_C",
+account.client_delinquency_date AS "DELINQUENCY_BUCKET_CHANGE_DATE_C",
+account.phone_home AS "CUSTOMER_CONTACT_R.HOMEPHONE",
+account.phone_cell AS "CUSTOMER_CONTACT_R.MOBILEPHONE",
+account.phone_work AS "CUSTOMER_CONTACT_R.WORK_PHONE_C",
+client_data.client_ref_2 AS "CUSTOMER_C",
+client_data.client_ref_3 AS "CURRENT_LOAN_NUMBER_R.NAME",
+'EQUIFAX' AS "VENDOR",
+demographic_address.address1 AS "ADDRESS 1",
+demographic_address.address2 AS "ADDRESS 2",
+demographic_address.city AS "CITY",
+demographic_address.state AS "PROVINCE",
+demographic_address.zip AS "POSTCODE",
+demographic_phone.phone_number AS "HOME NUMBER",
+' ' AS "EMPLOYMENT NUMBER",
+' ' AS "ADDITIONAL NUMBER",
+'CANADA' AS "COUNTRY",
+'HOME' AS "TYPE"
+
+From account,debt_flag,client_data
+
+Where account.debt_id=debt_flag.debt_id
+AND account.debt_id=client_data.debt_id
+
+Left Join
+demographic_phone,demographic_address
+
+ON account.debt_id=demographic_phone.debt_id
+AND account.debt_id=demographic_address.debt_id
+AND debt_flag.identifier='ALL_PROD_RECEIVED'--need to validate flag that will be used
+AND account.customer_client_code='TR0120'
+AND account.debt_status_code='ACT' --need to validate the status the accounts will be in when report is received_adjustment_reason
+AND demographic_address.enrichment_vendor_ids Like '*23*' 
+OR demographic_phone.enrichment_vendor_ids Like '*23*'
+And demographic_address.demographic_type='?'--is this pertinent?

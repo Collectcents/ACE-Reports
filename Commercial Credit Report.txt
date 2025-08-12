@@ -1,0 +1,37 @@
+Select
+'D' as "TYPE",
+CASE When account.reference_number Is Null THen account.debt_id::TEXT
+     Else account.reference_number
+     End as "Debtor Number",
+account.company_name as "Debtor Name",
+account.address1 as "Debtor Address1",
+account.address2 as "Debtor Address2",
+account.city as "Debtor City",
+account.state as "Prov",
+account.zip as "DebtorPostal Code",
+account.customer_client_code as "Client Number",
+client.company_name as "Client Name",
+account.client_account_number as "Client Acct No",
+account.assigned_balance*.01 as "Claim Amt",
+account.owing_balance*.01 as "Debtor Balnce",
+CASE When debt_status_code.debt_status_code_group ='PAID' THEN 'PIF'
+     When debt_status_code.debt_status_code_group ='SETTLED' THEN 'SIF'
+     When debt_status_code.debt_status_code_group IN ('CANCELLED','CLOSED') THEN 'TOE'
+     ELSE 'ZON'
+     END as "Debtor Status",
+account.assigned_date as "Placed Date",
+account.last_status_change_date as "Status Date",
+account.last_pay_date as "Last Payment Date",
+account.closed_date as "Closed Date"
+
+From account
+
+INNER JOIN client ON account.client_id=client.client_id
+INNER JOIN client_categories ON account.client_id=client_categories.client_id
+INNER JOIN debt_status_code ON account.debt_status_code=debt_status_code.debt_status_code
+LEFT JOIN debt_flag ON account.debt_id=debt_flag.debt_id AND debt_flag.identifier='COMMERCIAL_CREDIT_FLAG'
+
+Where account.company_name Is Not Null
+AND (account.last_status_change_date BETWEEN ${DateRange:Date} OR account.create_date BETWEEN ${DateRange:Date})
+AND (client_categories.commericial_credit_report='t' OR debt_flag.identifier='COMMERCIAL_CREDIT_FLAG')
+--need to add a flag to identify previously reported

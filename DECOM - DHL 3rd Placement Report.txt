@@ -1,0 +1,13 @@
+Select
+TO_CHAR(account.assigned_date,'yyyy-MM') as "Listed",--will be year - month
+coalesce(Count(account.debt_id),0) as "Integer:#Placement", --will need to be a count in month
+Sum(account.principal_assigned) as "Currency:$Placement", --will e a sum in Month
+Sum(account.principal_received) as "Currency:$Collection", --will be a sum in month
+Sum(account.principal_received)/Sum(account.principal_assigned) as "Percentage:Recovery Rate", --will be percentage, $Collection/$Placement
+Sum(account.promised_payment_amount) as "Currency:Promise to Pay" --will be a sum
+
+From account
+
+Where account.customer_client_code IN ('JK1056','JK1057','JK1063')
+
+Group By "Listed"

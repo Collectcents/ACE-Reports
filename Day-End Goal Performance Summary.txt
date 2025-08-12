@@ -1,0 +1,16 @@
+SELECT
+    worklist.label AS "Collector",
+    worklist.identifier AS "Desk",
+    user_commissions.transaction_date,
+    auth_user_passwd.monthly_goal_amount,
+    auth_user_passwd.daily_goal_amount,
+    user_commissions.amount_collected
+    
+FROM
+    debt, worklist, auth_user_passwd, user_commissions
+WHERE 
+    debt.worklist_id = worklist.worklist_id
+    AND debt.debt_id = user_commissions.debt_id
+    AND user_commissions.user_id = auth_user_passwd.user_id
+    AND worklist.identifier='VG'
+LIMIT 50;

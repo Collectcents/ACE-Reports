@@ -1,0 +1,72 @@
+--Header--
+Select 
+'ACOLLDEBF2029510' || TO_CHAR(CURRENT_DATE, 'YY') || EXTRACT(DOY FROM CURRENT_DATE) || '00120' AS "PAD Summary",
+NULL AS "Decrypt:Account number",
+NULL AS "Account Name",
+NULL  AS "Reference Number"
+
+FROM debt, preauthorized_debits_pad
+WHERE debt.debt_id = preauthorized_debits_pad.debt_id AND
+preauthorized_debits_pad.date_to_start_debit = ${DateTime:Date}
+
+UNION ALL
+
+Select 
+'XD7000' || TO_CHAR(${DateTime:Date}, 'YY')  || EXTRACT(DOY FROM ${DateTime:Date}) ||  'COLLECTCENTS ' AS "PAD Summary",
+NULL as "Decrypt:Account number",
+'INCOLLECTCENTS INC              ' AS "Account Name",
+'0001398021019631' AS "Reference Number"
+
+FROM debt, preauthorized_debits_pad
+WHERE debt.debt_id = preauthorized_debits_pad.debt_id AND
+preauthorized_debits_pad.date_to_start_debit = ${DateTime:Date}
+
+UNION ALL
+
+
+--Details--
+Select 
+
+'D' || 
+  LPAD(CAST(COALESCE(preauthorized_debits_pad.amount_to_debit, 0) AS TEXT), 10, '0') ||
+  LPAD(CAST(COALESCE(preauthorized_debits_pad.bank_number, 0) AS TEXT), 4, '0') ||
+  LPAD(CAST(COALESCE(preauthorized_debits_pad.transit_number, 0) AS TEXT), 5, '0') 
+  AS "PAD Summary",
+RPAD(preauthorized_debits_pad.account_number, 12, ' ')   as "Decrypt:Account number",
+--preauthorized_debits_pad.account_number AS "Decrypt:Account Number",
+RPAD(REPLACE(preauthorized_debits_pad.account_name, ',', ''), 29, ' '),
+CAST(debt.debt_id AS TEXT) AS "Reference Number"
+
+FROM debt, preauthorized_debits_pad
+WHERE debt.debt_id = preauthorized_debits_pad.debt_id AND
+preauthorized_debits_pad.date_to_start_debit = ${DateTime:Date}
+--GROUP BY debt.client_account_number, debt.reference_number, "Name"
+
+
+--Footer--
+
+UNION ALL
+
+Select 
+'YD' || 
+  LPAD(COUNT(*)::text, 8, '0') || 
+  LPAD(SUM(preauthorized_debits_pad.amount_to_debit)::text, 14, '0') AS "PAD Summary",
+NULL as "Decrypt:Account number",
+NULL,
+NULL
+FROM debt, preauthorized_debits_pad
+WHERE debt.debt_id = preauthorized_debits_pad.debt_id AND
+preauthorized_debits_pad.date_to_start_debit = ${DateTime:Date}
+
+UNION ALL
+
+Select 
+'Z' || 
+  LPAD(SUM(preauthorized_debits_pad.amount_to_debit)::text, 14, '0') ||
+  LPAD(COUNT(*)::text, 5, '0') || '0000000000000000000'  AS "PAD Summary",
+NULL as "Decrypt:Account number",
+NULL,
+NULL
+FROM debt, preauthorized_debits_pad
+WHERE debt.debt_id = preauthorized_debits_pad.debt_id AND
+preauthorized_debits_pad.date_to_start_debit = ${DateTime:Date}

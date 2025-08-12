@@ -1,0 +1,1 @@
+select debt_status_code.debt_status_code, debt_status_code.description from debt_status_code order by debt_status_code.debt_status_code

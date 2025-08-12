@@ -1,0 +1,14 @@
+SELECT
+demographic.debt_id,
+UPPER(regexp_replace(SUBSTRING(debt_conv_cubs_1.raw_name FROM 1 FOR POSITION(',' IN debt_conv_cubs_1.raw_name) - 1), '[^a-zA-Z\s-]', '', 'g')) "Before Comma",
+debt_conv_cubs_1.raw_name as "Raw Name",
+UPPER(demographic.first_name) as "First Name",
+UPPER(demographic.middle_name) as "Middle Name",
+UPPER(demographic.last_name) "Last Name"
+FROM
+demographic, debt_conv_cubs_1
+WHERE
+demographic.debt_id = debt_conv_cubs_1.debt_id
+AND demographic.demographic_type = 'PRIMARY'
+AND POSITION(',' IN debt_conv_cubs_1.raw_name) > 0
+AND UPPER(demographic.last_name) != UPPER(regexp_replace(SUBSTRING(debt_conv_cubs_1.raw_name FROM 1 FOR POSITION(',' IN debt_conv_cubs_1.raw_name) - 1), '[^a-zA-Z\s-]', '', 'g'))

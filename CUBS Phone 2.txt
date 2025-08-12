@@ -1,0 +1,1 @@
+SELECT debt_conv_cubs_6.debt_id, debt_conv_cubs_6.f86phone_2 FROM debt_conv_cubs_6 WHERE debt_conv_cubs_6.f86phone_2 IS NOT NULL

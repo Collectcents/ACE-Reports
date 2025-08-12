@@ -1,0 +1,1 @@
+select * from client left join client_conv_anita on client.client_id= client_conv_anita.client_id where client.commission_rate_id is null and client_conv_anita.commission is null limit 100

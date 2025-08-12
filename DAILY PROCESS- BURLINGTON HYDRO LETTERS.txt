@@ -1,0 +1,31 @@
+SELECT DISTINCT ON (debt.debt_id) 
+    debt.client_account_number AS "DRL#", -- need to confirm this
+    CASE 
+        WHEN demographic.last_name IS NOT NULL AND demographic.first_name IS NOT NULL 
+             AND TRIM(demographic.last_name) <> '' AND TRIM(demographic.first_name) <> ''
+        THEN CONCAT(demographic.first_name, ' ', demographic.last_name)
+        ELSE demographic.company_name 
+    END AS "Name",
+    ' ' AS "Unit number",
+    demographic.address1 AS "Mail Addr1",
+    demographic.address2 AS "Mail Addr2",
+    demographic.city AS "Mail City",
+    demographic.state AS "Mail Prov",
+    demographic.zip AS "Mail PostCd",
+    utilities.book_route AS "Book Route#",
+    utilities.book_sequence AS "Book Seq#",
+    TO_CHAR(utilities.delinquency_plus_19, 'MM/DD/YYYY') AS "Delinq Dt + 19",
+    TO_CHAR(utilities.disconnect_from, 'MM/DD/YYYY') AS "Disc From Dt",
+    TO_CHAR(utilities.disconnect_to, 'MM/DD/YYYY') AS "Disc to Dt",
+    utilities.electricity_cost AS "Currency:Elect Due",
+    utilities.water_cost AS "Currency:Water Due",
+    utilities.electricity_cost + utilities.water_cost AS "Currency:Elect + Water Due",
+    '' AS "Name2"--,
+   -- letter.send_date -- need to confirm this
+FROM debt
+JOIN utilities ON debt.debt_id = utilities.debt_id
+JOIN demographic ON debt.debt_id = demographic.debt_id
+JOIN letter ON debt.debt_id = letter.debt_id
+WHERE debt.customer_client_code LIKE 'SM0001_P%'-- or add parameter for this
+AND NOT (utilities.electricity_cost is null and utilities.water_cost is null) 
+AND letter.send_date BETWEEN ${DateRange:Letter Date};

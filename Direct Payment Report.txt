@@ -1,0 +1,16 @@
+Select
+client.customer_client_code AS "Client Code",
+debt_trans.debt_id AS "Debtor Code",
+debt_trans.trans_date AS "Trans Date",
+debt_trans.type_name AS "Trans Type",
+Sum(debt_trans.amount) AS "Trans Amount",
+Sum(debt_trans.commission_amount) AS "Comm Amount"
+
+From client,debt_trans
+
+Where client.client_id=debt_trans.client_id
+AND debt_trans.type_name = 'PAYMENT'
+AND debt_trans.trans_date BETWEEN ${DateTimeRange:Date Range}
+
+Group By client.customer_client_code,debt_trans.debt_id,debt_trans.trans_date,debt_trans.type_name
+Limit 50

@@ -1,0 +1,27 @@
+WITH numbered_statuses AS (
+    SELECT
+    debt.debt_id,
+    debt.debt_status_code,
+    ROW_NUMBER() OVER (PARTITION BY debt_status_code ORDER BY debt.create_date) as row_num
+    FROM
+    debt
+)
+SELECT
+debt.debt_id,
+debt.reference_number,
+debt.customer_client_code,
+debt.current_balance,
+debt_conv_cubs_1.cur_bal as "Currency: TCS Current Balance",
+debt.current_balance - debt_conv_cubs_1.cur_bal as "Currency: Difference",
+debt.debt_status_code
+FROM
+debt, debt_conv_cubs_1, numbered_statuses
+WHERE
+debt.debt_id = debt_conv_cubs_1.debt_id
+AND (debt.current_balance != debt_conv_cubs_1.cur_bal
+OR debt_conv_cubs_1.cur_bal IS NULL)
+AND debt.debt_status_code != 'CAN'
+AND debt.interest_effective_date IS NULL
+AND debt.interest_rate = '0'
+AND debt.debt_id = numbered_statuses.debt_id
+AND numbered_statuses.row_num <= 5

@@ -1,0 +1,1 @@
+select client.client_id,client.customer_client_code,client_conv_cubs.invoice_type from client,client_conv_cubs where client.client_id = client_conv_cubs.client_id

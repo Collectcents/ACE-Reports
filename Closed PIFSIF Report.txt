@@ -1,0 +1,26 @@
+SELECT
+account.customer_client_code As "CLIENT NO.",
+account.debt_id AS "ACCOUNT NO.",
+case when account.company_name is not null then account.company_name else concat(account.last_name,', ',account.first_name,' ',account.middle_name) end AS "CLIENT NAME", 
+account.client_account_number AS "CLIENT REFERENCE NUMBER",
+client_data.client_ref_1 AS "CLIENT REF1",
+client_data.client_ref_2 AS "CLIENT REF2",
+client_data.client_ref_3 AS "CLIENT REF3",
+TO_CHAR(account.assigned_date, 'MM/DD/YYYY') AS "ASSIGNED DATE",
+account.assigned_balance AS "Currency:TOTAL ASSIGNED BALANCE",
+(COALESCE(account.interest_owing, 0) - COALESCE(account.interest_assigned, 0)) AS "Currency:INTEREST ACCRUED",
+account.principal_received AS "Currency:PRINCIPAL RECEIVED",
+account.interest_received AS "Currency:INTEREST RECEIVED",
+account.cancelled_balance AS "Currency:CANCELLED BALANCE",
+account.current_balance AS "Currency:TOTAL BALANCE",
+TO_CHAR(account.last_pay_date, 'MM/DD/YYYY') AS "LAST PAYMENT DATE",
+account.debt_status_code AS "STATUS CODES",
+account.closed_date AS "Closed Date"
+
+FROM 
+account, client_data
+WHERE 
+account.debt_id=client_data.debt_id AND
+account.debt_status_code IN ('PIF','SIF')
+AND account.client_id IN (${ClientCodes:Client Code})
+AND account.closed_date BETWEEN ${DateRange:Closed Date Range}

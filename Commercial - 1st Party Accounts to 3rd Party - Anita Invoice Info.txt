@@ -1,0 +1,18 @@
+Select
+debt.debt_id,
+debt.customer_client_code,
+debt.client_account_number,
+anita_invoice_history.status,
+anita_invoice_history.amount,
+anita_invoice_history.assigned,
+anita_invoice_history.description,
+anita_invoice_history.invoice_date,
+anita_invoice_history.invoice_num
+
+From debt,debt_flag,anita_invoice_history
+
+Where debt.debt_id=debt_flag.debt_id
+AND debt.debt_id=anita_invoice_history.debt_id
+AND debt_flag.identifier='COMMERCIAL_MOVE_TO_3RD'
+AND (anita_invoice_history.status Not In ('ACPF','ACFC')
+OR anita_invoice_history.status IS NULL)

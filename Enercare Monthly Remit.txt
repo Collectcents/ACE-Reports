@@ -1,0 +1,11 @@
+Select
+debt.client_account_number,
+LPAD(payment.amount::TEXT,8,'0'),
+TO_CHAR(payment.trans_date,'MMddyyyy'),
+'3PTYCBCC'
+
+From debt, payment
+
+Where debt.debt_id=payment.debt_id
+AND debt.client_id In (${ClientCodes:Clients})
+AND payment.trans_date BETWEEN ${DateRange:Date}

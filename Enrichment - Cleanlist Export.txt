@@ -1,0 +1,25 @@
+SELECT
+account.debt_id as "DEBTORNUM",
+CONCAT(account.first_name,' ',account.middle_name,' ',account.last_name) as "FULLNAME",
+account.company_name as "COMPANY",
+account.address1 as "ADD1",
+account.address2 as "ADD2",
+account.city as "CITY",
+account.state as "PROV",
+account.zip as "POSTAL",
+(SELECT demographic_phone.phone_number FROM demographic_phone WHERE demographic_phone.demographic_type = 'PRIMARY' AND demographic_phone.debt_id = account.debt_id AND demographic_phone.contact_priority = '1') as "PHONE",
+(SELECT demographic_phone.phone_number FROM demographic_phone WHERE demographic_phone.demographic_type = 'PRIMARY' AND demographic_phone.debt_id = account.debt_id AND demographic_phone.contact_priority = '2') as "PHONE2",
+(SELECT demographic_phone.phone_number FROM demographic_phone WHERE demographic_phone.demographic_type = 'PRIMARY' AND demographic_phone.debt_id = account.debt_id AND demographic_phone.contact_priority = '3') as "PHONE3",
+(SELECT demographic_phone.phone_number FROM demographic_phone WHERE demographic_phone.demographic_type = 'PRIMARY' AND demographic_phone.debt_id = account.debt_id AND demographic_phone.contact_priority = '4') as "PHONE4",
+(SELECT demographic_phone.phone_number FROM demographic_phone WHERE demographic_phone.demographic_type = 'PRIMARY' AND demographic_phone.debt_id = account.debt_id AND demographic_phone.contact_priority = '5') as "PHONE5",
+(SELECT demographic_phone.phone_number FROM demographic_phone WHERE demographic_phone.demographic_type = 'PRIMARY' AND demographic_phone.debt_id = account.debt_id AND demographic_phone.contact_priority = '6') as "PHONE6",
+(SELECT demographic_phone.phone_number FROM demographic_phone WHERE demographic_phone.demographic_type = 'PRIMARY' AND demographic_phone.debt_id = account.debt_id AND demographic_phone.contact_priority = '7') as "PHONE7",
+(SELECT demographic_phone.phone_number FROM demographic_phone WHERE demographic_phone.demographic_type = 'PRIMARY' AND demographic_phone.debt_id = account.debt_id AND demographic_phone.contact_priority = '8') as "PHONE8",
+(SELECT demographic_phone.phone_number FROM demographic_phone WHERE demographic_phone.demographic_type = 'PRIMARY' AND demographic_phone.debt_id = account.debt_id AND demographic_phone.contact_priority = '9') as "PHONE9",
+(SELECT demographic_phone.phone_number FROM demographic_phone WHERE demographic_phone.demographic_type = 'PRIMARY' AND demographic_phone.debt_id = account.debt_id AND demographic_phone.contact_priority = '10') as "PHONE10",
+TO_CHAR(account.dob,'yyyyMMdd') AS "BIRTHDATE",
+TO_CHAR(current_date + interval '6 months','yyyyMMdd') as "MONTRDATE"
+FROM
+account
+WHERE
+account.debt_id IN (SELECT debt_id FROM debt_flag WHERE identifier = 'CLEANLIST_EXPORT')

@@ -1,0 +1,14 @@
+SELECT 
+    account.debt_id AS "ACE Number",
+    account.customer_client_code AS "Client Code",
+    debt.debt_status_code
+    
+FROM account
+
+JOIN client_categories ON account.client_id = client_categories.client_id
+
+JOIN debt ON account.debt_id = debt.debt_id
+
+WHERE client_categories.client_group = 'Commercial'
+
+ORDER BY debt.debt_status_code;

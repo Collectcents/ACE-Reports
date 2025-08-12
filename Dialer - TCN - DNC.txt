@@ -1,0 +1,10 @@
+SELECT
+debt.debt_id,
+demographic_phone.phone_number,
+debt.customer_client_code,
+demographic_phone.status
+FROM
+debt, demographic_phone
+WHERE
+debt.debt_id = demographic_phone.debt_id
+AND demographic_phone.last_update BETWEEN ${DateTimeRange:Date Range}

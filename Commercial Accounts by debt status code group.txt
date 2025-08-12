@@ -1,0 +1,16 @@
+SELECT 
+    debt.debt_status_code,
+    COUNT(debt.debt_status_code) AS accounts_count
+    
+FROM debt
+
+JOIN client_categories
+     ON client_categories.client_id = debt.client_id
+
+JOIN account 
+     ON account.debt_id = debt.debt_id
+     
+WHERE client_categories.client_group = 'Commercial'
+
+GROUP BY debt.debt_status_code
+ORDER BY accounts_count DESC;

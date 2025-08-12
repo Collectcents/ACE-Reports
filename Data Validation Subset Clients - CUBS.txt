@@ -1,0 +1,6 @@
+SELECT DISTINCT
+debt.customer_client_code
+FROM
+debt
+WHERE
+debt.delta_log_id IN (166024,166018)
